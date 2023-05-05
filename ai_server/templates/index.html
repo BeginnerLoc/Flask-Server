@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Video Stream Example</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.min.js"></script>
+  </head>
+  <body>
+    <canvas id="canvas1"></canvas>
+    <script>
+      // Get the canvas element
+      const canvas_element = document.getElementById("canvas1");
+
+      // Get the canvas context for drawing
+      const canvas_context = canvas_element.getContext("2d");
+
+      // Connect to the server
+      var socket = io.connect('http://localhost:5000');
+
+      socket.on("connect", function() {
+        console.log("Client connected")
+      })
+
+      // Listen for incoming frames
+      socket.on('stream', function(frame) {
+
+        console.log(frame)
+        console.log(typeof frame)
+
+        // Create an image object to hold the frame data
+        var img = new Image();
+
+        // Set the source of the image to the new frame
+        src = "data:image/jpeg;base64," + frame.image;
+        img.src = src;
+
+        // When the image is loaded, draw it on the canvas
+        img.onload = function() {
+          canvas_context.drawImage(img, 0, 0, canvas_element.width, canvas_element.height);
+        };
+      });
+    </script>
+  </body>
+</html>
