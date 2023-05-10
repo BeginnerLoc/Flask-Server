@@ -3,3 +3,4 @@ ultralytics
 flask_socketio
 eventlet
 opencv-python
+pymongo
