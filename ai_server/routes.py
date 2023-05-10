@@ -9,12 +9,12 @@ main = Blueprint("main", __name__)
 def index():
     return render_template("index.html")
 
-# return JSON containing the incient with most cases and the number of cases
-@main.route("/api/most_incidents")
-def most_incidents():
+# return JSON containing the breach with most cases and the number of cases
+@main.route("/api/most_breaches")
+def most_breaches():
     
     db = db_client["construction"]
-    collection = db["incidents"]
+    collection = db["breaches"]
     
     # retrieve documents from the collection
     result = collection.aggregate([
@@ -29,12 +29,12 @@ def most_incidents():
     
     return jsonify(response)
 
-
-@main.route("/api/today_cases")
-def today_cases():
+# return JSON containing the today's number of breaches
+@main.route("/api/today_breaches")
+def today_breaches():
     
     db = db_client["construction"]
-    collection = db["incidents"]
+    collection = db["breaches"]
     
     # Get the start and end of today
     start_of_today = datetime.datetime.combine(datetime.datetime.today().date(), datetime.time.min)
