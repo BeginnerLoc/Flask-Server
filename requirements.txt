@@ -4,3 +4,4 @@ flask_socketio
 eventlet
 opencv-python
 pymongo
+face_recognition

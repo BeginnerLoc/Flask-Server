@@ -5,6 +5,13 @@ import datetime
 
 main = Blueprint("main", __name__)
 
+@main.after_request
+def add_cors_headers(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE')
+    return response
+
 @main.route("/")
 def index():
     return render_template("index.html")
