@@ -15,8 +15,6 @@ try:
 except Exception as e:
     print(e)
 
-
-
 def train_encoding(image_url):
     image = face_recognition.load_image_file(image_url)
     name = image_url.split(".")[0]
@@ -33,21 +31,25 @@ def save_encodings(encoding):
 
 def retrieve_encoding():
     # retrieve the document from the collection
-    doc = collection.find_one()
-    num_vals = doc['encode'][1:]
+    encoding_data = collection.find_one()
 
-    encode_np = np.array(num_vals)
-    return encode_np    
+    return encoding_data    
     
 def recognition():
     encoding_data = retrieve_encoding()
     
+    num_vals = encoding_data['encode'][1:]
+    detect_name = encoding_data['encode'][0]
+    
+    encode_np = np.array(num_vals)
+
+    
     known_face_encodings = [
-        encoding_data
+        encode_np
     ]
     
     known_face_names = [
-        "daren"
+        detect_name
     ]
     
     face_locations = []
@@ -124,6 +126,6 @@ def recognition():
 
 
 encoding = train_encoding("daren.jpg")
-# save_encodings(encoding)
+save_encodings(encoding)
 video_capture = cv2.VideoCapture(0)
 recognition()
