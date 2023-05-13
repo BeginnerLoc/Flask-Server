@@ -2,6 +2,7 @@ import face_recognition
 import cv2
 import numpy as np
 from pymongo.mongo_client import MongoClient
+from ultralytics import YOLO
 
 uri = "mongodb+srv://loctientran235:PUp2XTv7tkArDjJB@c290.5lmj4xh.mongodb.net/?retryWrites=true&w=majority"
 # Create a new client and connect to the server
@@ -14,6 +15,10 @@ try:
     print("Pinged your deployment. You successfully connected to MongoDB!")
 except Exception as e:
     print(e)
+
+
+model2 = YOLO('./ai_model/ppe_model.pt')
+
 
 def train_encoding(image_url):
     image = face_recognition.load_image_file(image_url)
@@ -103,6 +108,10 @@ def recognition():
 
             # Draw a box around the face
             if name != "Unknown":
+                
+                results1 = model2.predict(frame)
+                plot_bboxes(frame, results1[0].boxes.data, score=False, conf=0.85)
+                
                 cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
                 cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 255, 0), cv2.FILLED)
                 font = cv2.FONT_HERSHEY_DUPLEX
@@ -118,6 +127,59 @@ def recognition():
     # Release handle to the webcam
     video_capture.release()
     cv2.destroyAllWindows()
+
+
+#ppe
+
+#play the bounding boxes with the label and the score :
+def box_label(image, box, label='', color=(128, 128, 128), txt_color=(255, 255, 255)):
+    
+  if label != 'Person':  
+    lw = max(round(sum(image.shape) / 2 * 0.003), 2)
+    p1, p2 = (int(box[0]), int(box[1])), (int(box[2]), int(box[3]))
+    cv2.rectangle(image, p1, p2, color, thickness=lw, lineType=cv2.LINE_AA)
+    if label and label:
+        tf = max(lw - 1, 1)  # font thickness
+        w, h = cv2.getTextSize(label, 0, fontScale=lw / 3, thickness=tf)[0]  # text width, height
+        outside = p1[1] - h >= 3
+        p2 = p1[0] + w, p1[1] - h - 3 if outside else p1[1] + h + 3
+        cv2.rectangle(image, p1, p2, color, -1, cv2.LINE_AA)  # filled
+        cv2.putText(image,
+                    label, (p1[0], p1[1] - 2 if outside else p1[1] + h + 2),
+                    0,
+                    lw / 3,
+                    txt_color,
+                    thickness=tf,
+                    lineType=cv2.LINE_AA)
+
+def plot_bboxes(image, boxes, labels=[], colors=[], score=True, conf=None):
+    #Define COCO Labels
+    if labels == []:
+        labels = {0: u'__background__', 1: u'Hardhat', 2: u'Mask', 3: u'NO-Hardhat', 
+                  4: u'NO-Mask', 5: u'NO-Safety Vest', 6: u'Person', 
+                  7: u'Safety Cone', 8: u'Safety Vest', 9: u'machinery', 10: u'vehicle'}
+# 'Hardhat', 'Mask', 'NO-Hardhat', 'NO-Mask', 'NO-Safety Vest', 
+# 'Person', 'Safety Cone', 'Safety Vest', 'machinery', 'vehicle'
+    #Define colors
+        colors = [(0,255,0),(0,255,0),(0,0,255),
+                  (0,0,255),(0,0,255),(123,63,0),
+                  (123,63,0),(0,255,0),(123,63,0),(123,63,0)]
+
+    #plot each boxes
+    for box in boxes:
+        #add score in label if score=True
+        if score :
+            label = labels[int(box[-1])+1] + " " + str(round(100 * float(box[-2]),1)) + "%"
+        else :
+            label = labels[int(box[-1])+1]
+        #filter every box under conf threshold if conf threshold setted
+        if conf :
+            if box[-2] > conf:
+                color = colors[int(box[-1])]
+                box_label(image, box, label, color)
+            else:
+                color = colors[int(box[-1])]
+                box_label(image, box, label, color)
 
 
 
