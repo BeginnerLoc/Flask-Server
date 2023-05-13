@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 from pymongo.mongo_client import MongoClient
 from ultralytics import YOLO
+import threading
 
 uri = "mongodb+srv://loctientran235:PUp2XTv7tkArDjJB@c290.5lmj4xh.mongodb.net/?retryWrites=true&w=majority"
 # Create a new client and connect to the server
@@ -18,6 +19,10 @@ except Exception as e:
 
 
 model2 = YOLO('./ai_model/ppe_model.pt')
+
+stop_event = threading.Event()
+
+employee_data = None
 
 
 def train_encoding(image_url):
@@ -36,7 +41,7 @@ def save_encodings(encoding):
 
 def retrieve_encoding():
     # retrieve all the documents from the collection
-    encoding_data = collection.find(sort=[('_id', -1)])
+    encoding_data = collection.find()
 
     # create a list to store the encodings
     encoding_list = []
@@ -47,6 +52,19 @@ def retrieve_encoding():
         encoding_list.append((detect_name, encode_np))
         
     return encoding_list   
+
+def update_employee(name):
+    collection = db["workers"]
+    global employee_data
+    employee_data = collection.find_one({"name": name})
+    print("===========================UPDATING " + employee_data["name"]+ "'s DATA================================")
+    
+    
+def search_data_thread(name):
+    thread = threading.Thread(target=update_employee, args=(name,))
+    thread.start()
+    return thread
+
     
 def recognition():
     encoding_list = retrieve_encoding()
@@ -92,7 +110,17 @@ def recognition():
                     best_match_index = np.argmin(face_distances)
                     if matches[best_match_index]:
                         name = known_face_names[best_match_index]
+                        
+                if employee_data == None or employee_data['name'] != name:        
+                    thread = search_data_thread(name)
+                    # Set the stop_event object to stop the thread
+                    stop_event.set()
+                    # Wait for the thread to finish
+                    thread.join()
+                    # Reset the stop_event object for the next iteration
+                    stop_event.clear()
 
+                
                 face_names.append(name)
 
         process_this_frame = not process_this_frame
@@ -109,7 +137,7 @@ def recognition():
             # Draw a box around the face
             if name != "Unknown":
                 
-                results1 = model2.predict(frame)
+                results1 = model2.predict(frame, verbose=False)
                 plot_bboxes(frame, results1[0].boxes.data, score=False, conf=0.85)
                 
                 cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
@@ -128,17 +156,22 @@ def recognition():
     video_capture.release()
     cv2.destroyAllWindows()
 
-
 #ppe
 
 #play the bounding boxes with the label and the score :
 def box_label(image, box, label='', color=(128, 128, 128), txt_color=(255, 255, 255)):
-    
-  if label != 'Person':  
+
+  #Construction workers are required to wear hat - vest - mask
+  #Managers are required to wear hat - vest
+  requirements = []
+  if employee_data!= None and employee_data['position'] == 'Manager':    
+    requirements = ['NO-Mask']
+  
+  if label != 'Person' and label not in requirements:  
     lw = max(round(sum(image.shape) / 2 * 0.003), 2)
     p1, p2 = (int(box[0]), int(box[1])), (int(box[2]), int(box[3]))
     cv2.rectangle(image, p1, p2, color, thickness=lw, lineType=cv2.LINE_AA)
-    if label and label:
+    if label:
         tf = max(lw - 1, 1)  # font thickness
         w, h = cv2.getTextSize(label, 0, fontScale=lw / 3, thickness=tf)[0]  # text width, height
         outside = p1[1] - h >= 3
@@ -184,7 +217,7 @@ def plot_bboxes(image, boxes, labels=[], colors=[], score=True, conf=None):
 
 
 
-# encoding = train_encoding("Tai.1.jpg")
+# encoding = train_encoding("Loc.1.jpg")
 # save_encodings(encoding)
 video_capture = cv2.VideoCapture(0)
 recognition()
