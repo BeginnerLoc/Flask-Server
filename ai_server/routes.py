@@ -2,6 +2,8 @@ from flask import Blueprint, render_template, jsonify
 import json
 from .extensions import db_client
 import datetime
+from .ai_thread import AiThread
+import threading
 
 main = Blueprint("main", __name__)
 
@@ -14,6 +16,14 @@ def add_cors_headers(response):
 
 @main.route("/")
 def index():
+    return render_template("index.html")
+
+
+@main.route("/test")
+def test():
+    ai_thread = AiThread()
+    thread = threading.Thread(target=ai_thread.recognition)
+    thread.start()
     return render_template("index.html")
 
 # return JSON containing the breach with most cases and the number of cases

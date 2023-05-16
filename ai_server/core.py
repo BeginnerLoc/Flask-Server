@@ -57,7 +57,7 @@ def update_employee(name):
     collection = db["workers"]
     global employee_data
     employee_data = collection.find_one({"name": name})
-    print("===========================" + employee_data["name"] + "is a" + employee_data["position"] + "================================")
+    print("=========================== " + employee_data["name"] + " is a " + employee_data["position"] + "================================")
     
     
 def search_data_thread(name):
