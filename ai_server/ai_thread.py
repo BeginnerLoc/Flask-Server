@@ -16,7 +16,6 @@ class AiThread():
         self.db = self.db_client["construction"]
         self.collection = self.db["encodings"]
         self.video_capture = cv2.VideoCapture(0)
-        # self.model2 = YOLO("server//ai_server//ai_model//ppe_model.pt")
         self.stop_event = threading.Event()
         self.employee_data = employee_data
 
@@ -60,6 +59,8 @@ class AiThread():
 
     def recognition(self):
         encoding_list = self.retrieve_encoding()
+        model2 = YOLO("D:/ppe_detection/server/ai_server/ai_model/ppe_model.pt")
+
 
         known_face_encodings = [encoding[1] for encoding in encoding_list]
         known_face_names = [encoding[0] for encoding in encoding_list]
@@ -120,10 +121,10 @@ class AiThread():
                 left *= 4
 
                 if name != "Unknown":
-                    # results1 = self.model2.predict(frame, verbose=False)
-                    # self.plot_bboxes(
-                    #     frame, results1[0].boxes.data, score=False, conf=0.85
-                    # )
+                    results1 = model2.predict(frame, verbose=False)
+                    self.plot_bboxes(
+                        frame, results1[0].boxes.data, score=False, conf=0.85
+                    )
 
                     cv2.rectangle(
                         frame, (left, top), (right, bottom), (0, 255, 0), 2
