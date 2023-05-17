@@ -26,7 +26,7 @@ def download_pdf():
     # Set today's date and time and convert the string and put today's date and time at the bottom of the first page 
     now = datetime.now()
     dt_string = now.strftime("%m/%d/%Y %H:%M:%S")
-    pdf.setFont("Helvetica", 24)
+    pdf.setFont("Helvetica", 18)
     pdf.drawCentredString(4.25 * inch, 1 * inch, "Generated on {}".format(dt_string))
 
     # Start writing the data on the second page
