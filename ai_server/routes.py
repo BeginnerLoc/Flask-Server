@@ -61,3 +61,20 @@ def today_breaches():
     count = collection.count_documents({'datetime': {'$gte': start_of_today, '$lte': end_of_today}})
     
     return jsonify(count)
+
+# return JSON with all the attributes of breaches
+@main.route("/api/graph_breaches")
+def breaches():
+    db = db_client["construction"]
+    collection = db["db_breaches"]
+    
+    # retrieve documents from the collection
+    result = collection.find()
+
+    # Convert the result to a list of documents and convert ObjectId to string
+    documents = [doc for doc in result]
+    for doc in documents:
+        doc["_id"] = str(doc["_id"])
+    
+    # Return the list of documents as a JSON response
+    return jsonify(documents)
