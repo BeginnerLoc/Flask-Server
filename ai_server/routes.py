@@ -67,7 +67,7 @@ def today_breaches():
 def download_pdf_route():
     return download_pdf()
 
-# return JSON with all the attributes of breaches
+# return JSON with all the attributes of breaches.
 @main.route("/api/graph_breaches")
 def breaches():
     db = db_client["construction"]
