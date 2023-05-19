@@ -4,6 +4,7 @@ from .extensions import db_client
 import datetime
 from .ai_thread import AiThread
 import threading
+from utils.create_pdf import download_pdf
 
 main = Blueprint("main", __name__)
 
@@ -61,6 +62,10 @@ def today_breaches():
     count = collection.count_documents({'datetime': {'$gte': start_of_today, '$lte': end_of_today}})
     
     return jsonify(count)
+
+@main.route('/download_pdf', methods=['GET'])
+def download_pdf_route():
+    return download_pdf()
 
 # return JSON with all the attributes of breaches
 @main.route("/api/graph_breaches")

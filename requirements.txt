@@ -8,4 +8,7 @@ pymongo
 face_recognition
 cmake
 dlib
+reportlab
+datetime
+io
 # myenv\Scripts\activate.bat
