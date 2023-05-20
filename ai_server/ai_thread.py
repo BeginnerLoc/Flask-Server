@@ -132,7 +132,7 @@ class AiThread():
                             worker_id = worker_data["worker_id"]
                         else:
                             position = None
-                            worker_id = None
+                            worker_id = None 
 
                         collection2 = self.db["checkin"]
 
