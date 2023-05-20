@@ -134,7 +134,7 @@ class AiThread():
                             position = None
                             worker_id = None 
 
-                        collection2 = self.db["checkin"]
+                        collection2 = self.db["checkin"] 
 
                         checkin_entry = {
                             "name": name,
