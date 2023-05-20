@@ -116,6 +116,7 @@ class AiThread():
                     face_names.append(name)
 
                 #Live check in:
+                    collection2 = self.db["checkin"] 
 
                 # Create a single document for each day to store all the worker check-ins
                     checkin_data = {
@@ -133,8 +134,6 @@ class AiThread():
                         else:
                             position = None
                             worker_id = None 
-
-                        collection2 = self.db["checkin"] 
 
                         checkin_entry = {
                             "name": name,
