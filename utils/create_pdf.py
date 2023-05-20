@@ -6,7 +6,6 @@ from reportlab.lib.units import inch
 from datetime import datetime, timedelta
 from io import BytesIO
 
-
 def download_pdf():
     report_type = request.args.get('report_type')
     days = int(request.args.get('days'))
@@ -19,15 +18,10 @@ def download_pdf():
 
     # Define the query based on the report type and days
     query = {}
-    # if report_type == "incidents":
-    #     query["type"] = "Incident"
-    # elif report_type == "breaches":
-    #     query["type"] = "Breach"
 
     if days:
         start_date = datetime.today() - timedelta(days=days)
         query["timestamp"] = {"$gte": start_date}
-
 
     data = collection.find(query) # Get the data from the MongoDB collection
 
