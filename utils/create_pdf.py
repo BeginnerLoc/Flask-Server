@@ -1,18 +1,35 @@
-from flask import make_response
+from flask import make_response, request
+import pymongo
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import inch
+from datetime import datetime, timedelta
+from io import BytesIO
+
 
 def download_pdf():
-    import pymongo
-    from reportlab.pdfgen import canvas
-    from reportlab.lib.pagesizes import letter
-    from reportlab.lib.units import inch
-    from datetime import datetime, timedelta
-    from io import BytesIO
-
+    report_type = request.args.get('report_type')
+    days = int(request.args.get('days'))
+    print(report_type)
+    print(days)
     # Connect to the MongoDB database
     client = pymongo.MongoClient("mongodb+srv://Astro:enwVEQqCyk9gYBzN@c290.5lmj4xh.mongodb.net/")
     db = client["construction"]
     collection = db["Incidents"]
-    data = collection.find() # Get the data from the MongoDB collection
+
+    # Define the query based on the report type and days
+    query = {}
+    # if report_type == "incidents":
+    #     query["type"] = "Incident"
+    # elif report_type == "breaches":
+    #     query["type"] = "Breach"
+
+    if days:
+        start_date = datetime.today() - timedelta(days=days)
+        query["timestamp"] = {"$gte": start_date}
+
+
+    data = collection.find(query) # Get the data from the MongoDB collection
 
     # Create a PDF canvas (Letter sized)
     pdf = canvas.Canvas("myreport.pdf", pagesize=letter) 
