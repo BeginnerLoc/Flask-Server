@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, jsonify
+from flask import Blueprint, render_template, jsonify, request
 import json
 from .extensions import db_client
 import datetime
@@ -83,3 +83,57 @@ def breaches():
     
     # Return the list of documents as a JSON response
     return jsonify(documents)
+
+# # return JSON containing the breach with most cases and the number of cases
+# @main.route("/api/indiv_breaches")
+# def all_breaches():
+
+#     db = db_client["construction"]
+#     collection = db["db_breaches"]
+
+#     # Retrieve all documents from the collection
+#     documents = collection.find({})
+
+#     # Convert documents to a list
+#     breach_list = list(documents)
+
+#     response = json.dumps(breach_list, default=str)
+    
+#     return jsonify(response) 
+
+# return JSON containing the all the workers details with filter 
+
+@main.route("/api/indiv_breaches")
+def get_indiv_breaches():
+    db = db_client["construction"]
+    collection = db["db_breaches"]
+
+    name_filter = request.args.get("name")
+
+    query = {}
+    if name_filter:
+        query["worker_name"] = name_filter
+
+    # Retrieve documents from the collection based on the filter
+    documents = collection.find(query)
+
+    # Convert documents to a list
+    breach_list = list(documents)
+
+    response = json.dumps(breach_list, default=str)
+    return jsonify(response)
+
+
+# return JSON containing the all the workers details
+@main.route("/api/all_workers")
+def all_workers():
+    db = db_client["construction"]
+    collection = db["workers"]
+
+    # Retrieve all documents from the collection, excluding the _id field
+    documents = collection.find({}, {"_id": 0})
+
+    # Convert documents to a list
+    worker_list = [worker for worker in documents]
+
+    return jsonify(worker_list)

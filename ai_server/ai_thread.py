@@ -4,6 +4,7 @@ import numpy as np
 from pymongo.mongo_client import MongoClient
 from ultralytics import YOLO
 import threading
+from datetime import datetime 
 
 class AiThread():
     def __init__(
@@ -59,8 +60,9 @@ class AiThread():
 
     def recognition(self):
         encoding_list = self.retrieve_encoding()
-        model2 = YOLO("D:/ppe_detection/server/ai_server/ai_model/ppe_model.pt")
+        model2 = YOLO("C:\\FYP\\Flask-Server\\ai_server\\ai_model\\ppe_model.pt") 
 
+        checkin_recorded = set() # Initializes an empty set called checkin_recorded. This set will be used to keep track of the names of employees who have already checked in to avoid duplicates.
 
         known_face_encodings = [encoding[1] for encoding in encoding_list]
         known_face_names = [encoding[0] for encoding in encoding_list]
@@ -68,7 +70,7 @@ class AiThread():
         face_locations = []
         face_encodings = []
         face_names = []
-        process_this_frame = True
+        process_this_frame = True 
 
         while True:
             ret, frame = self.video_capture.read()
@@ -112,9 +114,42 @@ class AiThread():
                         thread.join()
                         self.stop_event.clear()
                     face_names.append(name)
+
+                #Live check in:
+                    collection2 = self.db["checkin"] 
+
+                # Create a single document for each day to store all the worker check-ins
+                    checkin_data = {
+                        "date": datetime.now().strftime("%Y-%m-%d"),
+                        "check_ins": []
+                    }
+
+                # Check if the detected face is a known employee and insert check-in record
+                    if name != "Unknown" and name not in checkin_recorded:
+                        collection = self.db["workers"]
+                        worker_data = collection.find_one({"name": name})
+                        if worker_data is not None:
+                            position = worker_data["position"]
+                            worker_id = worker_data["worker_id"]
+                        else:
+                            position = None
+                            worker_id = None 
+
+                        checkin_entry = {
+                            "name": name,
+                            "position": position,
+                            "worker_id": worker_id,
+                            "time": datetime.now()
+                        }
+                        checkin_data["check_ins"].append(checkin_entry)
+                        checkin_recorded.add(name)
+
+                    # Insert the check-in data for the day into the MongoDB collection
+                    collection2.update_one({"date": checkin_data["date"]}, {"$push": {"check_ins": {"$each": checkin_data["check_ins"]}}}, upsert=True)
+
             process_this_frame = not process_this_frame
 
-            for (top, right, bottom, left), name in zip(face_locations, face_names):
+            for (top, right, bottom, left), name in zip(face_locations, face_names): 
                 top *= 4
                 right *= 4
                 bottom *= 4
