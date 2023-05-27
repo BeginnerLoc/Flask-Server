@@ -11,4 +11,5 @@ dlib
 reportlab
 datetime
 io
+python-telegram-bot
 # myenv\Scripts\activate.bat
