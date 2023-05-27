@@ -180,7 +180,7 @@ def recognition():
 
         #Find the most face detect
         if len(face_names) > 10:
-            most_frequent_name = Counter(face_names).most_common(1)[0][0]
+            most_frequent_name = Counter(face_names[-5:]).most_common(1)[0][0]
 
             if most_frequent_name != "Unknown" and most_frequent_name != None:
                 cv2.putText(imgBackground, "Hi, " + most_frequent_name, (875, 120), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2)
@@ -208,14 +208,9 @@ def recognition():
                 #140 spaces
                 imgBackground[470:470 + 125, 865:865 + 105] = imgPpeList[1]
 
-                #Default Status - all not detected
-                # imgBackground[320:320 + 130, 1030:1030 + 152] = imgStatusList[3]
-                # #140 spaces
-                # imgBackground[460:460 + 130, 1030:1030 + 152] = imgStatusList[2]
-
                 if len(ppe_list) > 20:
                     ppe_list = ppe_list[-20:]
-                    #if PPE existing more than 5 times is True, less than 2 is as False
+                    #if PPE existing more than 5 frames is True, less than 2 frames is as False
                     if ppe_list.count("Hardhat") >= 5:
                         status1 = imgStatusList[0]
                     elif ppe_list.count("Hardhat") <= 2:
@@ -229,20 +224,13 @@ def recognition():
                     imgBackground[320:320 + 130, 1030:1030 + 152] = status1
                     imgBackground[460:460 + 130, 1030:1030 + 152] = status2
 
-                    if ppe_list.count("Safety Vest") >= 2 and ppe_list.count("Hardhat") >= 2:
+                    #if both PPE detected more than 2 frames set True.
+                    if ppe_list.count("Safety Vest") > 2 and ppe_list.count("Hardhat") > 2:
                         imgBackground[635:635 + 35, 900:900 + 300] = clear_text
-                        cv2.putText(imgBackground, "You’re good to go. Stay Safe!", (910, 655), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.8, (255, 255, 255), 2)
+                        cv2.putText(imgBackground, "You are good to go. Stay Safe!", (910, 655), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.8, (255, 255, 255), 2)
                     else:
                         imgBackground[635:635 + 35, 900:900 + 300] = clear_text
                         cv2.putText(imgBackground, "Please wear PPE!!", (910, 655), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 2)
-
-                session_start_time = time.time()
-
-                if int(time.time() - session_start_time) > 5:
-                    #Check the last 20 names for the most frequent name
-                    most_frequent_name_current = Counter(face_names[-10:]).most_common(1)[0][0]
-                    if most_frequent_name != most_frequent_name_current:
-                        most_frequent_name = most_frequent_name_current
 
         # Display the results
         cv2.imshow('Video', imgBackground)
