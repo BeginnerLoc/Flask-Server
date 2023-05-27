@@ -5,9 +5,39 @@ from pymongo.mongo_client import MongoClient
 from ultralytics import YOLO
 import threading
 import time
+from datetime import datetime
 import collections
 from collections import Counter
 import os
+import asyncio
+from telegram import Bot
+import httpx
+
+
+#Function to send telegram message with 3 tries in case of errors
+async def send_message(bot_token, chat_id, message):
+    retries = 3
+    for attempt in range(1, retries + 1):
+        try:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(timeout=5.0)) as client:
+                response = await client.post(
+                    f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                    json={"chat_id": chat_id, "text": message}
+                )
+                print(f"Response Status Code: {response.status_code}")
+                break  # Break the loop if the request succeeds
+        except (httpx.ConnectError, httpx.ReadError, httpx.TimeoutException) as exc:
+            print(f"Failed attempt {attempt}/{retries}: {exc}")
+            if attempt == retries:
+                print("Request failed after maximum retries")
+                break
+            else:
+                print("Retrying...")
+                continue 
+
+#Telegram Bot token and Chat ID (Astro's Chat ID)
+bot_token = '5959752019:AAHZvf9E64dnXrYDPsX97ePMcoGz-t88KEw'
+chat_id  = '443723632'
 
 
 uri = "mongodb+srv://loctientran235:PUp2XTv7tkArDjJB@c290.5lmj4xh.mongodb.net/?retryWrites=true&w=majority"
@@ -93,6 +123,8 @@ def search_data_thread(name):
     return thread
 
 def recognition():
+    message = 0
+    last_name = 0
     encoding_list = retrieve_encoding()
     
     known_face_encodings = [encoding[1] for encoding in encoding_list]
@@ -180,7 +212,7 @@ def recognition():
 
         #Find the most face detect
         if len(face_names) > 10:
-            most_frequent_name = Counter(face_names).most_common(1)[0][0]
+            most_frequent_name = Counter(face_names[-5:]).most_common(1)[0][0]
 
             if most_frequent_name != "Unknown" and most_frequent_name != None:
                 cv2.putText(imgBackground, "Hi, " + most_frequent_name, (875, 120), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2)
@@ -225,6 +257,15 @@ def recognition():
                         status2 = imgStatusList[2]
                     elif ppe_list.count("Safety vest") <= 2:
                         status2 = imgStatusList[3]
+
+                    if most_frequent_name != last_name:
+                        last_name = face_names[-1]
+                    
+                        if ppe_list.count("Safety Vest") < 2 or ppe_list.count("Hardhat") < 2: 
+                            message = "[ALERT]\nWorker Name:" + most_frequent_name + " is not wearing the proper PPE!\nTimestamp: " + datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+
+                        
+                        asyncio.run(send_message(bot_token, chat_id, message))
                     
                     imgBackground[320:320 + 130, 1030:1030 + 152] = status1
                     imgBackground[460:460 + 130, 1030:1030 + 152] = status2
