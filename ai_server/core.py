@@ -205,14 +205,18 @@ def recognition():
                 cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
 
         results1 = model2.predict(frame, verbose=False)
-        #PPE_list
+
+        #PPE_list - 3 Dimensions Array
         ppe_item = plot_bboxes(imgBackground[158:158 + 480, 52:52 + 640], results1[0].boxes.data, score=False, conf=0.85)
-        ppe_list.append(ppe_item)
         print(ppe_item)
+        ppe_list.append(ppe_item)
+        # print(ppe_list)
+        # count = sum(sublist.count("NO-Hardhat") for sublist in ppe_list)
+        # print(count)
 
         #Find the most face detect
         if len(face_names) > 10:
-            most_frequent_name = Counter(face_names[-5:]).most_common(1)[0][0]
+            most_frequent_name = Counter(face_names[-10:]).most_common(1)[0][0]
 
             if most_frequent_name != "Unknown" and most_frequent_name != None:
                 cv2.putText(imgBackground, "Hi, " + most_frequent_name, (875, 120), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2)
@@ -240,17 +244,17 @@ def recognition():
                 #140 spaces
                 imgBackground[470:470 + 125, 865:865 + 105] = imgPpeList[1]
 
-                if len(ppe_list) > 20:
-                    ppe_list = ppe_list[-20:]
+                if len(ppe_list) > 10:
+                    ppe_list = ppe_list[-10:]
                     #if PPE existing more than 5 frames is True, less than 2 frames is as False
-                    if ppe_list.count("Hardhat") >= 5:
+                    if sum(sublist.count("Hardhat") for sublist in ppe_list) >= 5:
                         status1 = imgStatusList[0]
-                    elif ppe_list.count("Hardhat") <= 2:
+                    elif sum(sublist.count("Hardhat") for sublist in ppe_list) <= 2:
                         status1 = imgStatusList[1]
                     
-                    if ppe_list.count("Safety vest") >= 5:
+                    if sum(sublist.count("Safety vest") for sublist in ppe_list) >= 5:
                         status2 = imgStatusList[2]
-                    elif ppe_list.count("Safety vest") <= 2:
+                    elif sum(sublist.count("Safety vest") for sublist in ppe_list) <= 2:
                         status2 = imgStatusList[3]
 
                     if most_frequent_name != last_name:
@@ -318,7 +322,7 @@ def recognition():
         
 
 def plot_bboxes(image, boxes, labels=[], colors=[], score=True, conf=None):
-    output = ""
+    output = []
     #Define COCO Labels
     if labels == []:
         labels = {0: u'__background__', 1: u'Hardhat', 2: u'Mask', 3: u'NO-Hardhat', 
@@ -335,7 +339,7 @@ def plot_bboxes(image, boxes, labels=[], colors=[], score=True, conf=None):
     for box in boxes:
         #add score in label if score=True
         if score :
-            label = labels[int(box[-1])+1] + " " + str(round(100 * float(box[-2]),1)) + "%"
+            label = labels[int([-1])+1] + " " + str(round(100 * float(box[-2]),1)) + "%"
         else :
             label = labels[int(box[-1])+1]
         #filter every box under conf threshold if conf threshold setted
@@ -363,7 +367,7 @@ def plot_bboxes(image, boxes, labels=[], colors=[], score=True, conf=None):
                                 color=(255, 255, 255),
                                 thickness=tf,
                                 lineType=cv2.LINE_AA)
-                    output = label
+                    output.append(label)
     return output
 
 
