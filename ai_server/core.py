@@ -189,19 +189,19 @@ def recognition():
 
                 if most_frequent_name == "Astro":
                     imgBackground[50:50 + 108, 1105:1105 + 108] = imgAvaList[0]
-                    cv2.putText(imgBackground, "Cleaning - Astro", (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 1)
+                    cv2.putText(imgBackground, "Laborer: remove the shattered class", (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.7, (255, 255, 255), 1)
                     
                 elif most_frequent_name == "Chris":
                     imgBackground[50:50 + 108, 1105:1105 + 108] = imgAvaList[1]
-                    cv2.putText(imgBackground, "Sleeping - Chris", (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 1)
+                    cv2.putText(imgBackground, "Painter: paint the walls", (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.7, (255, 255, 255), 1)
                     
                 elif most_frequent_name == "Daren":
                     imgBackground[50:50 + 108, 1105:1105 + 108] = imgAvaList[2]
-                    cv2.putText(imgBackground, "Eating - Daren", (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 1)
+                    cv2.putText(imgBackground, "Electrician: install the power distribution", (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.7, (255, 255, 255), 1)
 
                 elif most_frequent_name == "Loc":
                     imgBackground[50:50 + 108, 1105:1105 + 108] = imgAvaList[3]
-                    cv2.putText(imgBackground, "Coding - Loc", (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 1)
+                    cv2.putText(imgBackground, "Welder: operate welding equipment", (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.7, (255, 255, 255), 1)
                 
                 #PPE Require - 0-Helmet and 1-Vest
                 imgBackground[330:330 + 125, 865:865 + 105] = imgPpeList[0]
@@ -213,17 +213,17 @@ def recognition():
                 # #140 spaces
                 # imgBackground[460:460 + 130, 1030:1030 + 152] = imgStatusList[2]
 
-                if len(ppe_list) > 15:
-                    ppe_list = ppe_list[-15:]
-                    #if PPE existing more than 7 times
-                    if ppe_list.count("Safety Vest") >= 2:
+                if len(ppe_list) > 20:
+                    ppe_list = ppe_list[-20:]
+                    #if PPE existing more than 5 times is True, less than 2 is as False
+                    if ppe_list.count("Hardhat") >= 5:
                         status1 = imgStatusList[0]
-                    else:
+                    elif ppe_list.count("Hardhat") <= 2:
                         status1 = imgStatusList[1]
                     
-                    if ppe_list.count("Hardhat") >= 2:
+                    if ppe_list.count("Safety vest") >= 5:
                         status2 = imgStatusList[2]
-                    else:
+                    elif ppe_list.count("Safety vest") <= 2:
                         status2 = imgStatusList[3]
                     
                     imgBackground[320:320 + 130, 1030:1030 + 152] = status1
