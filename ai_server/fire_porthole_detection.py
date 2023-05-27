@@ -31,7 +31,7 @@ porthole_post = False
 # model1 = YOLO('D:\Workspace\Flask-Server\ai_server\ai_model\hole.pt')
 model1 = YOLO('./ai_model/hole.pt')
 model1.model.conf_thres = 0.7 # Set detection threshold
-model2 = YOLO('./ai_model/firee.pt')
+model2 = YOLO('./ai_model/fire.pt')
 model2.model.conf_thres = 0.7 # Set detection threshold
 
 
