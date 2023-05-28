@@ -52,7 +52,7 @@ def most_breaches():
 def today_breaches():
     
     db = db_client["construction"]
-    collection = db["breaches"]
+    collection = db["db_breaches"]
     
     # Get the start and end of today
     start_of_today = datetime.datetime.combine(datetime.datetime.today().date(), datetime.time.min)
@@ -124,6 +124,7 @@ def get_indiv_breaches():
     return jsonify(response)
 
 
+
 # return JSON containing the all the workers details
 @main.route("/api/all_workers")
 def all_workers():
@@ -137,3 +138,64 @@ def all_workers():
     worker_list = [worker for worker in documents]
 
     return jsonify(worker_list)
+
+
+# # return JSON containing the live check in
+
+# class CustomJSONEncoder(json.JSONEncoder):
+#     def default(self, obj):
+#         if isinstance(obj, datetime.datetime):
+#             return obj.isoformat()
+#         return super().default(obj)
+    
+
+# @main.route("/api/check_in")
+# def live_checkin():
+
+#     db = db_client["construction"]
+#     collection = db["checkin"]
+    
+#     # Get the current date and time
+#     current_datetime = datetime.datetime.now()
+
+#     # Retrieve the document for the current date
+#     document = collection.find_one({"date": current_datetime.date().strftime("%Y-%m-%d")})
+
+#     if document:
+#         # Extract the worker information from the check_ins array
+#         worker_info = []
+#         for check_in in document["check_ins"]:
+#             worker_info.append({
+#                 "name": check_in["name"],
+#                 "worker_id": check_in["worker_id"],
+#                 "position": check_in["position"],
+#                 "supervisor": check_in["supervisor"],
+#                 "time": check_in["time"]
+#             })
+
+#         response = json.dumps(worker_info, cls=CustomJSONEncoder)
+#         return jsonify(response)
+#     else:
+#         return "No check-in data available for the current date."
+    
+# Count the number of workers and display it
+@main.route("/api/num_check_in")
+def live_checkin():
+    db = db_client["construction"]
+    collection = db["checkin"]
+    
+    # Get the current date and time
+    current_datetime = datetime.datetime.now()
+
+    # Retrieve the document for the current date
+    document = collection.find_one({"date": current_datetime.date().strftime("%Y-%m-%d")})
+
+    if document:
+        # Count the number of worker check-ins
+        num_check_ins = len(document["check_ins"])
+
+        response = {"num_check_ins": num_check_ins}
+        return jsonify(response)
+    else:
+        return 0 
+    
