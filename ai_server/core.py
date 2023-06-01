@@ -52,32 +52,33 @@ try:
 except Exception as e:
     print(e)
 
-model2 = YOLO('ai_server\\ai_model\\ppe_model.pt')
-
 stop_event = threading.Event()
 
 employee_data = None
 
-imgBackground = cv2.imread('ai_server\\UI_photos\\background.png')
-model = cv2.imread('ai_server\\UI_photos\\pageA.png')
-clear_text = cv2.imread('ai_server\\UI_photos\\clear.png')
+model2 = YOLO('ai_server\\ai_model\\ppe_model.pt')
+photo_path = "ai_server\\UI_photos\\"
+
+imgBackground = cv2.imread(photo_path + 'background.png')
+model = cv2.imread(photo_path + 'pageA.png')
+clear_text = cv2.imread(photo_path + 'clear.png')
 
 #statusList
-folderStatusPath = 'ai_server\\UI_photos\\status'
+folderStatusPath = photo_path + 'status'
 statusPathList = os.listdir(folderStatusPath)
 imgStatusList = []
 for path in statusPathList:
     imgStatusList.append(cv2.imread(os.path.join(folderStatusPath, path)))
 
 #avaList
-folderAvaPath = 'ai_server\\UI_photos\\Ava'
+folderAvaPath = photo_path + 'Ava'
 avaPathList = os.listdir(folderAvaPath)
 imgAvaList = []
 for path in avaPathList:
     imgAvaList.append(cv2.imread(os.path.join(folderAvaPath, path)))
 
 #ppeList
-folderPpePath = 'ai_server\\UI_photos\\ppe'
+folderPpePath = photo_path + 'ppe'
 ppePathList = os.listdir(folderPpePath)
 imgPpeList = []
 for path in ppePathList:
@@ -174,15 +175,7 @@ def recognition():
                 best_match_index = np.argmin(face_distances)
                 if matches[best_match_index]:
                     name = known_face_names[best_match_index]
-                    
-            if employee_data == None or employee_data['name'] != name:        
-                thread = search_data_thread(name)
-                # Set the stop_event object to stop the thread
-                stop_event.set()
-                # Wait for the thread to finish
-                thread.join()
-                # Reset the stop_event object for the next iteration
-                stop_event.clear()
+                
 
             face_names.append(name)
             print(name)
@@ -210,6 +203,7 @@ def recognition():
         ppe_item = plot_bboxes(imgBackground[158:158 + 480, 52:52 + 640], results1[0].boxes.data, score=False, conf=0.85)
         print(ppe_item)
         ppe_list.append(ppe_item)
+        print(face_names)
         # print(ppe_list)
         # count = sum(sublist.count("NO-Hardhat") for sublist in ppe_list)
         # print(count)
@@ -218,26 +212,40 @@ def recognition():
         if len(face_names) > 10:
             most_frequent_name = Counter(face_names[-10:]).most_common(1)[0][0]
 
+            if employee_data == None or employee_data['name'] != most_frequent_name:        
+                thread = search_data_thread(most_frequent_name)
+                # Set the stop_event object to stop the thread
+                stop_event.set()
+                # Wait for the thread to finish
+                thread.join()
+                # Reset the stop_event object for the next iteration
+                stop_event.clear()
+
+                #print(employee_data["worker_role"])
+
+            role = employee_data["worker_role"]
+
             if most_frequent_name != "Unknown" and most_frequent_name != None:
-                cv2.putText(imgBackground, "Hi, Daren", (875, 120), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2)
+                cv2.putText(imgBackground, "Hi, " + most_frequent_name, (875, 120), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2)
                 cv2.putText(imgBackground, "PPE Require:", (830, 290), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), 2)
                 cv2.putText(imgBackground, "Your JobScopes Today is:", (835, 210), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), 2)
 
                 if most_frequent_name == "Astro":
-                    imgBackground[50:50 + 108, 1105:1105 + 108] = imgAvaList[2]
-                    cv2.putText(imgBackground, "Laborer", (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 1)
+                    imgBackground[50:50 + 108, 1105:1105 + 108] = imgAvaList[0]
+                    
+                    cv2.putText(imgBackground, role, (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 1)
                     
                 elif most_frequent_name == "Chris":
-                    imgBackground[50:50 + 108, 1105:1105 + 108] = imgAvaList[2]
-                    cv2.putText(imgBackground, "Painter", (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 1)
+                    imgBackground[50:50 + 108, 1105:1105 + 108] = imgAvaList[1]
+                    cv2.putText(imgBackground, role, (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 1)
                     
                 elif most_frequent_name == "Daren":
                     imgBackground[50:50 + 108, 1105:1105 + 108] = imgAvaList[2]
-                    cv2.putText(imgBackground, "Electrician", (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 1)
+                    cv2.putText(imgBackground, role, (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 1)
 
                 elif most_frequent_name == "Loc":
-                    imgBackground[50:50 + 108, 1105:1105 + 108] = imgAvaList[2]
-                    cv2.putText(imgBackground, "Welder", (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 1)
+                    imgBackground[50:50 + 108, 1105:1105 + 108] = imgAvaList[3]
+                    cv2.putText(imgBackground, role, (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 1)
                 
                 #PPE Require - 0-Helmet and 1-Vest
                 imgBackground[330:330 + 125, 865:865 + 105] = imgPpeList[0]
@@ -270,7 +278,7 @@ def recognition():
                         if sum(sublist.count("Safety Vest") for sublist in ppe_list)  <= 2 or sum(sublist.count("Hardhat") for sublist in ppe_list) <= 2: 
                             message = "[ALERT]\nWorker Name:" + most_frequent_name + " is not wearing the proper PPE!\nTimestamp: " + datetime.now().strftime("%d/%m/%Y %H:%M:%S")
                         
-                        asyncio.run(send_message(bot_token, chat_id, message))
+                        #asyncio.run(send_message(bot_token, chat_id, message))
                     
                     # imgBackground[320:320 + 130, 1030:1030 + 152] = status1
                     # imgBackground[460:460 + 130, 1030:1030 + 152] = status2
