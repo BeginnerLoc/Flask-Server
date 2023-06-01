@@ -88,7 +88,7 @@ class AiThread():
                 )
 
                 face_names = []
-                for face_encoding in face_encodings:
+                for face_encoding in face_encodings: 
                     matches = face_recognition.compare_faces(
                         known_face_encodings, face_encoding
                     )
@@ -97,7 +97,7 @@ class AiThread():
                     if True in matches:
                         first_match_index = matches.index(True)
                         name = known_face_names[first_match_index]
-                    else:
+                    else: 
                         face_distances = face_recognition.face_distance(
                             known_face_encodings, face_encoding
                         )
@@ -116,7 +116,6 @@ class AiThread():
                     face_names.append(name)
 
                 #Live check in:
-                    collection2 = self.db["checkin"] 
 
                 # Create a single document for each day to store all the worker check-ins
                     checkin_data = {
@@ -131,21 +130,25 @@ class AiThread():
                         if worker_data is not None:
                             position = worker_data["position"]
                             worker_id = worker_data["worker_id"]
+                            supervisor = worker_data["supervisor"]
                         else:
                             position = None
-                            worker_id = None 
+                            worker_id = None
+
+                        collection = self.db["checkin"]
 
                         checkin_entry = {
                             "name": name,
-                            "position": position,
                             "worker_id": worker_id,
+                            "position": position,
+                            "supervisor": supervisor,
                             "time": datetime.now()
                         }
                         checkin_data["check_ins"].append(checkin_entry)
                         checkin_recorded.add(name)
 
-                    # Insert the check-in data for the day into the MongoDB collection
-                    collection2.update_one({"date": checkin_data["date"]}, {"$push": {"check_ins": {"$each": checkin_data["check_ins"]}}}, upsert=True)
+                        # Insert the check-in data for the day into the MongoDB collection
+                        collection.update_one({"date": checkin_data["date"]}, {"$push": {"check_ins": {"$each": checkin_data["check_ins"]}}}, upsert=True)
 
             process_this_frame = not process_this_frame
 

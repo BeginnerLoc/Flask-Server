@@ -14,15 +14,24 @@ def download_pdf():
     # Connect to the MongoDB database
     client = pymongo.MongoClient("mongodb+srv://Astro:enwVEQqCyk9gYBzN@c290.5lmj4xh.mongodb.net/")
     db = client["construction"]
-    collection = db["Incidents"]
 
+    if report_type == "incidents":
+        collection = db["Incidents"]
+    elif report_type == "breaches":
+        collection = db["db_breaches"]
+        
     # Define the query based on the report type and days
     query = {}
 
     if days:
         start_date = datetime.today() - timedelta(days=days)
-        query["timestamp"] = {"$gte": start_date}
+        if report_type == "incidents":
+            query["timestamp"] = {"$gte": start_date}
+        else:
+            query["datetime"] = {"$gte": start_date}
 
+
+    print(query)
     data = collection.find(query) # Get the data from the MongoDB collection
 
     # Create a PDF canvas (Letter sized)
@@ -55,31 +64,59 @@ def download_pdf():
     # Write the data to the PDF report
     y = top_margin
     entry_count = 0
+
+
+
     for d in data:
         if entry_count == 0:
             pdf.setFont("Helvetica-Bold", 14)
             pdf.drawCentredString(4.25 * inch, 10.75 * inch, "Safety Report -- Page {}".format(page_number-1)) # Change the y position to 10.75 inches
             y = top_margin
             
-            if page_number == 2:  # Display "Number of incidents within the past 7 days" only on the second page
-                # Create a table for the number of incidents within the past 7 days
-                past_week_date = datetime.today() - timedelta(days=7)
-                past_week_count = collection.count_documents({"timestamp": {"$gte": past_week_date}})
-                pdf.setFont("Helvetica-Bold", 12)
-                pdf.drawString(left_margin, y, "Number of incidents within the past 7 days: {}".format(past_week_count))
+            past_week_date = datetime.today() - timedelta(days=7)
+
+            print("Report type: " + report_type)
+            if page_number == 2: # Display "Number of incidents within the past 7 days" only on the second page
+                if report_type == "incidents":
+                    past_week_count = collection.count_documents({"timestamp": {"$gte": past_week_date}})
+                    pdf.drawString(left_margin, y, "Number of incidents within the past 7 days: {}".format(past_week_count))
+
+                elif report_type == "breaches":
+                    past_week_date = datetime.today() - timedelta(days=7)
+                    past_week_count = collection.count_documents({"datetime": {"$gte": past_week_date}})
+                    pdf.drawString(left_margin, y, "Number of breaches within the past 7 days: {}".format(past_week_count))
+
                 y -= line_height + 50
+
             
             pdf.setFont("Helvetica", 12)
-            pdf.drawString(left_margin, y, "Incident Type")
-            pdf.drawString(left_margin + 2.5 * inch, y, "Timestamp")
+            if report_type == "incidents":
+                pdf.drawString(left_margin, y, "Incident Type")
+                pdf.drawString(left_margin + 2.5 * inch, y, "Timestamp")
+            elif report_type == "breaches":
+                pdf.drawString(left_margin, y, "Breach Number")
+                pdf.drawString(left_margin + 1.5 * inch, y, "Timestamp")
+                pdf.drawString(left_margin + 4 * inch, y, "Worker Name")
+                pdf.drawString(left_margin + 6 * inch, y, "Description")
             y -= line_height
         
-        pdf.setFont("Helvetica-Bold", 12)
-        pdf.drawString(left_margin, y, "{}".format(d["incident_type"]))
-        pdf.setFont("Helvetica", 12)
-        pdf.drawString(left_margin + 2.5 * inch, y, "{}".format(d["timestamp"]))
+
+        if report_type == "incidents":
+            pdf.setFont("Helvetica-Bold", 12)
+            pdf.drawString(left_margin, y, "{}".format(d["incident_type"]))
+            pdf.setFont("Helvetica", 12)
+            pdf.drawString(left_margin + 2.5 * inch, y, "{}".format(d["timestamp"]))
+
+        elif report_type == "breaches":
+            pdf.setFont("Helvetica-Bold", 12)
+            pdf.drawString(left_margin, y, "{}".format(d["breach_number"]))
+            pdf.drawString(left_margin + 1.5 * inch, y, "{}".format(d["datetime"]))
+            pdf.drawString(left_margin + 4 * inch, y, "{}".format(d["worker_name"]))
+            pdf.drawString(left_margin + 6 * inch, y, "{}".format(d["description"]))
+        
         y -= line_height
         entry_count += 1
+        
         if entry_count == max_entries_per_page:
             entry_count = 0
             # Draw page number at the bottom of each page
@@ -87,6 +124,9 @@ def download_pdf():
             pdf.drawCentredString(4.25 * inch, bottom_margin, "Safety Report -- Page {}".format(page_number-1))
             pdf.showPage()
             page_number += 1
+
+
+
 
     # Draw page number at the bottom of the last page
     pdf.setFont("Helvetica", 12)
