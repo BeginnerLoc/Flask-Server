@@ -37,7 +37,7 @@ async def send_message(bot_token, chat_id, message):
 
 #Telegram Bot token and Chat ID (Astro's Chat ID)
 bot_token = '5959752019:AAHZvf9E64dnXrYDPsX97ePMcoGz-t88KEw'
-chat_id  = '443723632'
+chat_id  = '1629576653'
 
 
 uri = "mongodb+srv://loctientran235:PUp2XTv7tkArDjJB@c290.5lmj4xh.mongodb.net/?retryWrites=true&w=majority"
@@ -219,25 +219,25 @@ def recognition():
             most_frequent_name = Counter(face_names[-10:]).most_common(1)[0][0]
 
             if most_frequent_name != "Unknown" and most_frequent_name != None:
-                cv2.putText(imgBackground, "Hi, " + most_frequent_name, (875, 120), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2)
+                cv2.putText(imgBackground, "Hi, Daren", (875, 120), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2)
                 cv2.putText(imgBackground, "PPE Require:", (830, 290), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), 2)
                 cv2.putText(imgBackground, "Your JobScopes Today is:", (835, 210), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), 2)
 
                 if most_frequent_name == "Astro":
-                    imgBackground[50:50 + 108, 1105:1105 + 108] = imgAvaList[0]
-                    cv2.putText(imgBackground, "Laborer: remove the shattered class", (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.7, (255, 255, 255), 1)
+                    imgBackground[50:50 + 108, 1105:1105 + 108] = imgAvaList[2]
+                    cv2.putText(imgBackground, "Laborer", (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 1)
                     
                 elif most_frequent_name == "Chris":
-                    imgBackground[50:50 + 108, 1105:1105 + 108] = imgAvaList[1]
-                    cv2.putText(imgBackground, "Painter: paint the walls", (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.7, (255, 255, 255), 1)
+                    imgBackground[50:50 + 108, 1105:1105 + 108] = imgAvaList[2]
+                    cv2.putText(imgBackground, "Painter", (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 1)
                     
                 elif most_frequent_name == "Daren":
                     imgBackground[50:50 + 108, 1105:1105 + 108] = imgAvaList[2]
-                    cv2.putText(imgBackground, "Electrician: install the power distribution", (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.7, (255, 255, 255), 1)
+                    cv2.putText(imgBackground, "Electrician", (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 1)
 
                 elif most_frequent_name == "Loc":
-                    imgBackground[50:50 + 108, 1105:1105 + 108] = imgAvaList[3]
-                    cv2.putText(imgBackground, "Welder: operate welding equipment", (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.7, (255, 255, 255), 1)
+                    imgBackground[50:50 + 108, 1105:1105 + 108] = imgAvaList[2]
+                    cv2.putText(imgBackground, "Welder", (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 1)
                 
                 #PPE Require - 0-Helmet and 1-Vest
                 imgBackground[330:330 + 125, 865:865 + 105] = imgPpeList[0]
@@ -247,32 +247,38 @@ def recognition():
                 if len(ppe_list) > 10:
                     ppe_list = ppe_list[-10:]
                     #if PPE existing more than 5 frames is True, less than 2 frames is as False
-                    if sum(sublist.count("Hardhat") for sublist in ppe_list) >= 5:
-                        status1 = imgStatusList[0]
-                    elif sum(sublist.count("Hardhat") for sublist in ppe_list) <= 2:
-                        status1 = imgStatusList[1]
                     
-                    if sum(sublist.count("Safety vest") for sublist in ppe_list) >= 5:
-                        status2 = imgStatusList[2]
-                    elif sum(sublist.count("Safety vest") for sublist in ppe_list) <= 2:
-                        status2 = imgStatusList[3]
+                    if sum(sublist.count("NO-Hardhat") for sublist in ppe_list) <= 3:
+                        if sum(sublist.count("Hardhat") for sublist in ppe_list) >= 3:
+                                imgBackground[320:320 + 130, 1030:1030 + 152] = imgStatusList[0]
+                        elif sum(sublist.count("Hardhat") for sublist in ppe_list) <= 2:
+                            imgBackground[320:320 + 130, 1030:1030 + 152] = imgStatusList[1]
+                    else:
+                        imgBackground[320:320 + 130, 1030:1030 + 152] = imgStatusList[1]
+                    
+                    if sum(sublist.count("NO-Safety Vest") for sublist in ppe_list) <= 3:
+                        if sum(sublist.count("Safety Vest") for sublist in ppe_list) >= 3:
+                                imgBackground[460:460 + 130, 1030:1030 + 152] = imgStatusList[2]
+                        elif sum(sublist.count("Safety Vest") for sublist in ppe_list) <= 2:
+                            imgBackground[460:460 + 130, 1030:1030 + 152] = imgStatusList[3]
+                    else:
+                        imgBackground[460:460 + 130, 1030:1030 + 152] = imgStatusList[3]
 
                     if most_frequent_name != last_name:
                         last_name = face_names[-1]
                     
-                        if ppe_list.count("Safety Vest") < 2 or ppe_list.count("Hardhat") < 2: 
+                        if sum(sublist.count("Safety Vest") for sublist in ppe_list)  <= 2 or sum(sublist.count("Hardhat") for sublist in ppe_list) <= 2: 
                             message = "[ALERT]\nWorker Name:" + most_frequent_name + " is not wearing the proper PPE!\nTimestamp: " + datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-
                         
                         asyncio.run(send_message(bot_token, chat_id, message))
                     
-                    imgBackground[320:320 + 130, 1030:1030 + 152] = status1
-                    imgBackground[460:460 + 130, 1030:1030 + 152] = status2
+                    # imgBackground[320:320 + 130, 1030:1030 + 152] = status1
+                    # imgBackground[460:460 + 130, 1030:1030 + 152] = status2
 
                     #if both PPE detected more than 2 frames set True.
-                    if ppe_list.count("Safety Vest") > 2 and ppe_list.count("Hardhat") > 2:
+                    if sum(sublist.count("Hardhat") for sublist in ppe_list) > 2 and sum(sublist.count("Safety Vest") for sublist in ppe_list) > 2:
                         imgBackground[635:635 + 35, 900:900 + 300] = clear_text
-                        cv2.putText(imgBackground, "You are good to go. Stay Safe!", (910, 655), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.8, (255, 255, 255), 2)
+                        cv2.putText(imgBackground, "You are good to go. Stay Safe!", (905, 655), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.8, (255, 255, 255), 2)
                     else:
                         imgBackground[635:635 + 35, 900:900 + 300] = clear_text
                         cv2.putText(imgBackground, "Please wear PPE!!", (910, 655), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 2)
