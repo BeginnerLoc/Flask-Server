@@ -56,8 +56,8 @@ stop_event = threading.Event()
 
 employee_data = None
 
-model2 = YOLO('C:\\FYP\\Flask-Server\\ai_server\\ai_model\\ppe_model.pt')
-photo_path = "C:\\FYP\\Flask-Server\\ai_server\\UI_photos\\"
+model2 = YOLO('ai_server\\ai_model\\ppe_model.pt')
+photo_path = "ai_server\\UI_photos\\"
 
 imgBackground = cv2.imread(photo_path + 'background.png')
 model = cv2.imread(photo_path + 'pageA.png')
