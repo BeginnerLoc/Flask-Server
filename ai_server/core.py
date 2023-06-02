@@ -116,7 +116,7 @@ def update_employee(name):
     global employee_data
     employee_data = collection.find_one({"name": name})
 
-    print("=========================== " + employee_data["name"] + " is a " + employee_data["position"] + "================================")
+    #print("=========================== " + employee_data["name"] + " is a " + employee_data["position"] + "================================")
        
 def search_data_thread(name):
     thread = threading.Thread(target=update_employee, args=(name,))
@@ -178,7 +178,6 @@ def recognition():
                 
 
             face_names.append(name)
-            print(name)
 
         #process_this_frame = not process_this_frame
 
@@ -201,16 +200,15 @@ def recognition():
 
         #PPE_list - 3 Dimensions Array
         ppe_item = plot_bboxes(imgBackground[158:158 + 480, 52:52 + 640], results1[0].boxes.data, score=False, conf=0.85)
-        print(ppe_item)
         ppe_list.append(ppe_item)
+        #print(ppe_list)
+        print(ppe_item)
         print(face_names)
-        # print(ppe_list)
-        # count = sum(sublist.count("NO-Hardhat") for sublist in ppe_list)
-        # print(count)
 
         #Find the most face detect
         if len(face_names) > 10:
-            most_frequent_name = Counter(face_names[-10:]).most_common(1)[0][0]
+            face_names = face_names[-15:]
+            most_frequent_name = Counter(face_names).most_common(1)[0][0]
 
             if employee_data == None or employee_data['name'] != most_frequent_name:        
                 thread = search_data_thread(most_frequent_name)
@@ -220,8 +218,6 @@ def recognition():
                 thread.join()
                 # Reset the stop_event object for the next iteration
                 stop_event.clear()
-
-                #print(employee_data["worker_role"])
 
             role = employee_data["worker_role"]
 
