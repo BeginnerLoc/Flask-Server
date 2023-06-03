@@ -56,8 +56,8 @@ stop_event = threading.Event()
 
 employee_data = None
 
-model2 = YOLO('ai_server\\ai_model\\ppe_model.pt')
-photo_path = "ai_server\\UI_photos\\"
+model2 = YOLO('C:\\FYP\\Flask-Server\\ai_server\\ai_model\\ppe_model.pt')
+photo_path = "C:\\FYP\\Flask-Server\\ai_server\\UI_photos\\"
 
 imgBackground = cv2.imread(photo_path + 'background.png')
 model = cv2.imread(photo_path + 'pageA.png')
@@ -127,6 +127,9 @@ def recognition():
     message = 0
     last_name = 0
     encoding_list = retrieve_encoding()
+
+    checkin_recorded = set() # Initializes an empty set called checkin_recorded. This set will be used to keep track of the names of employees who have already checked in to avoid duplicates.
+
     
     known_face_encodings = [encoding[1] for encoding in encoding_list]
     known_face_names = [encoding[0] for encoding in encoding_list]
@@ -178,6 +181,41 @@ def recognition():
                 
 
             face_names.append(name)
+
+            #Live check in:
+
+            # Create a single document for each day to store all the worker check-ins
+            checkin_data = {
+                "date": datetime.now().strftime("%Y-%m-%d"),
+                "check_ins": []
+            }
+
+            # Check if the detected face is a known employee and insert check-in record
+            if name != "Unknown" and name not in checkin_recorded:
+                collection = db["workers"]
+                worker_data = collection.find_one({"name": name})
+                if worker_data is not None:
+                    position = worker_data["position"]
+                    worker_id = worker_data["worker_id"]
+                    supervisor = worker_data["supervisor"]
+                else:
+                    position = None
+                    worker_id = None
+
+                collection = db["checkin"]
+
+                checkin_entry = {
+                    "name": name,
+                    "worker_id": worker_id,
+                    "position": position,
+                    "supervisor": supervisor,
+                    "time": datetime.now()
+                }
+                checkin_data["check_ins"].append(checkin_entry)
+                checkin_recorded.add(name)
+
+                # Insert the check-in data for the day into the MongoDB collection
+                collection.update_one({"date": checkin_data["date"]}, {"$push": {"check_ins": {"$each": checkin_data["check_ins"]}}}, upsert=True)
 
         #process_this_frame = not process_this_frame
 

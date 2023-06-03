@@ -3,8 +3,6 @@ import cv2
 import numpy as np
 from pymongo.mongo_client import MongoClient
 from ultralytics import YOLO
-import imgaug.augmenters as iaa
-
 
 import os
 
@@ -28,7 +26,7 @@ def train_encoding(image_url):
     image = face_recognition.load_image_file(image_url)
     name = image_url.split(".")[0]
     encoding = face_recognition.face_encodings(image)[0]
-    object_encoding = encoding.astype(object)
+    object_encoding = encoding.astype(object) 
     result = np.insert(object_encoding, 0, name)
     return result
 
@@ -41,11 +39,6 @@ def get_encodings_from_folder(folder_path):
     # Initialize an empty list to store encodings
     encodings_list = []
 
-    # Define augmentation sequence
-    augmenter = iaa.Sequential([
-        iaa.SomeAugmentation()  # Add desired augmentations here
-    ])
-
     # Loop through each file in the folder
     for filename in os.listdir(folder_path):
         # Check if the file is an image
@@ -54,17 +47,38 @@ def get_encodings_from_folder(folder_path):
             image_path = os.path.join(folder_path, filename)
             image = cv2.imread(image_path)
 
-            # Apply augmentation to the image
-            augmented_image = augmenter.augment_image(image)
-
-            # Encode the augmented image and save the encoding to the list
-            encoding = face_recognition.face_encodings(augmented_image)[0]
+            # Encode the image and save the encoding to the list
+            encoding = face_recognition.face_encodings(image)[0]
             name = filename.split(".")[0]
             object_encoding = encoding.astype(object)
             result = np.insert(object_encoding, 0, name)
             encodings_list.append(result)
 
-    return encodings_list   
+    return encodings_list
+
+folder_path = "C:\\FYP\\Flask-Server\\ai_server\\images"
+encodings_list = get_encodings_from_folder(folder_path) 
+
+# Save the list of encodings to the database
+for encoding in encodings_list:
+    # convert the array to BSON
+    encoding_list = encoding.tolist()
+    collection.insert_one({"encode": encoding_list})
+
+
+def retrieve_encoding(): 
+    # retrieve all the documents from the collection
+    encoding_data = collection.find(sort=[('_id', -1)])
+
+    # create a list to store the encodings
+    encoding_list = []
+    for encoding in encoding_data:
+        num_vals = encoding['encode'][1:]
+        detect_name = encoding['encode'][0]
+        encode_np = np.array(num_vals)
+        encoding_list.append((detect_name, encode_np))
+        
+    return encoding_list    
     
 def recognition():
     encoding_list = retrieve_encoding()
