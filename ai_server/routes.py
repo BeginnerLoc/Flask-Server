@@ -199,3 +199,20 @@ def live_checkin():
     else:
         return 0 
     
+
+@main.route("/api/num_hazards")
+def num_hazards():
+    db = db_client["construction"]
+    collection = db["Incidents"]
+
+    result = collection.count_documents({})
+    
+    response = {"num_hazards": 0}
+    
+    if result:
+            # Count the number of hazards
+        response = {"num_hazards": result}
+ 
+    return jsonify(response)
+
+    
