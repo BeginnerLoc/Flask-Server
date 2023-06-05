@@ -32,7 +32,7 @@ def test():
 def most_breaches():
     
     db = db_client["construction"]
-    collection = db["breaches"]
+    collection = db["db_breaches"]
     
     # retrieve documents from the collection
     result = collection.aggregate([
