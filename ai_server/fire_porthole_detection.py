@@ -6,11 +6,34 @@ import pymongo
 from datetime import datetime, timedelta
 import time
 import asyncio
+import httpx
+
+
+async def send_message(bot_token, chat_id, message):
+    retries = 3
+    for attempt in range(1, retries + 1):
+        try:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(timeout=5.0)) as client:
+                response = await client.post(
+                    f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                    json={"chat_id": chat_id, "text": message}
+                )
+                print(f"Response Status Code: {response.status_code}")
+                break  # Break the loop if the request succeeds
+        except (httpx.ConnectError, httpx.ReadError, httpx.TimeoutException) as exc:
+            print(f"Failed attempt {attempt}/{retries}: {exc}")
+            if attempt == retries:
+                print("Request failed after maximum retries")
+                break
+            else:
+                print("Retrying...")
+                continue 
+
 
 # Initialising telegram connection
-async def send_message(token, chat_id, message):
-    bot = Bot(token=token)
-    await bot.send_message(chat_id=chat_id, text=message)
+# async def send_message(token, chat_id, message):
+#     bot = Bot(token=token)
+#     await bot.send_message(chat_id=chat_id, text=message)
 
 bot_token = '6060060457:AAGRyic-1HVFcUy1dSEsdLMJo0rB9Mvz0y0'
 chat_id = '-1001910285228'
