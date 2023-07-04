@@ -28,10 +28,11 @@ def test():
     return render_template("index.html")
 
 # return JSON containing the breach with most cases and the number of cases
-@main.route("/api/most_breaches")
-def most_breaches():
+@main.route("/api/<project_id>/most_breaches")
+def most_breaches(project_id):
     
     db = db_client["construction"]
+    collection_name = 'db_breaches_' + project_id
     collection = db["db_breaches"]
     
     # retrieve documents from the collection
@@ -48,11 +49,14 @@ def most_breaches():
     return jsonify(response)
 
 # return JSON containing the today's number of breaches 
-@main.route("/api/today_breaches")
-def today_breaches():
+from flask import jsonify
+
+@main.route("/api/<project_id>/today_breaches")
+def today_breaches(project_id):
     
     db = db_client["construction"]
-    collection = db["db_breaches"]
+    collection_name = "db_breaches_" + project_id
+    collection = db[collection_name]
     
     # Get the start and end of today
     start_of_today = datetime.datetime.combine(datetime.datetime.today().date(), datetime.time.min)
@@ -61,17 +65,20 @@ def today_breaches():
     # Count the number of documents with today's date
     count = collection.count_documents({'datetime': {'$gte': start_of_today, '$lte': end_of_today}})
     
-    return jsonify(count)
+    # Return the count as JSON
+    return jsonify({'count': count})
+
 
 @main.route('/download_pdf', methods=['GET'])
 def download_pdf_route():
     return download_pdf()
 
 # return JSON with all the attributes of breaches.
-@main.route("/api/graph_breaches")
-def breaches():
+@main.route("/api/<project_id>/graph_breaches")
+def breaches(project_id):
     db = db_client["construction"]
-    collection = db["db_breaches"]
+    collection_name = "db_breaches_" + project_id
+    collection = db[collection_name]
     
     # retrieve documents from the collection
     result = collection.find()
@@ -84,30 +91,13 @@ def breaches():
     # Return the list of documents as a JSON response
     return jsonify(documents)
 
-# # return JSON containing the breach with most cases and the number of cases
-# @main.route("/api/indiv_breaches")
-# def all_breaches():
-
-#     db = db_client["construction"]
-#     collection = db["db_breaches"]
-
-#     # Retrieve all documents from the collection
-#     documents = collection.find({})
-
-#     # Convert documents to a list
-#     breach_list = list(documents)
-
-#     response = json.dumps(breach_list, default=str)
-    
-#     return jsonify(response) 
-
 # return JSON containing the all the workers details with filter 
 
-@main.route("/api/indiv_breaches")
-def get_indiv_breaches():
+@main.route("/api/<project_id>/indiv_breaches")
+def get_indiv_breaches(project_id):
     db = db_client["construction"]
-    collection = db["db_breaches"]
-
+    collection_name = "db_breaches_" + project_id
+    collection = db[collection_name]
     name_filter = request.args.get("name")
 
     query = {}
@@ -126,10 +116,11 @@ def get_indiv_breaches():
 
 
 # return JSON containing the all the workers details
-@main.route("/api/all_workers")
-def all_workers():
+@main.route("/api/<project_id>/all_workers")
+def all_workers(project_id):
     db = db_client["construction"]
-    collection = db["workers"]
+    collection_name = "workers_" + project_id
+    collection = db[collection_name]
 
     # Retrieve all documents from the collection, excluding the _id field
     documents = collection.find({}, {"_id": 0})
@@ -139,45 +130,6 @@ def all_workers():
 
     return jsonify(worker_list)
 
-
-# # return JSON containing the live check in
-
-# class CustomJSONEncoder(json.JSONEncoder):
-#     def default(self, obj):
-#         if isinstance(obj, datetime.datetime):
-#             return obj.isoformat()
-#         return super().default(obj)
-    
-
-# @main.route("/api/check_in")
-# def live_checkin():
-
-#     db = db_client["construction"]
-#     collection = db["checkin"]
-    
-#     # Get the current date and time
-#     current_datetime = datetime.datetime.now()
-
-#     # Retrieve the document for the current date
-#     document = collection.find_one({"date": current_datetime.date().strftime("%Y-%m-%d")})
-
-#     if document:
-#         # Extract the worker information from the check_ins array
-#         worker_info = []
-#         for check_in in document["check_ins"]:
-#             worker_info.append({
-#                 "name": check_in["name"],
-#                 "worker_id": check_in["worker_id"],
-#                 "position": check_in["position"],
-#                 "supervisor": check_in["supervisor"],
-#                 "time": check_in["time"]
-#             })
-
-#         response = json.dumps(worker_info, cls=CustomJSONEncoder)
-#         return jsonify(response)
-#     else:
-#         return "No check-in data available for the current date."
-    
 # Count the number of workers and display it
 @main.route("/api/num_check_in")
 def live_checkin():
@@ -200,10 +152,11 @@ def live_checkin():
         return 0 
     
 
-@main.route("/api/num_hazards")
-def num_hazards():
+@main.route("/api/<project_id>/num_hazards")
+def num_hazards(project_id):
     db = db_client["construction"]
-    collection = db["Incidents"]
+    collection_name = "incidents_" + project_id
+    collection = db[collection_name]
 
     result = collection.count_documents({})
     

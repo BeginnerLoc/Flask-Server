@@ -44,7 +44,7 @@ uri = "mongodb+srv://loctientran235:PUp2XTv7tkArDjJB@c290.5lmj4xh.mongodb.net/?r
 # Create a new client and connect to the server
 db_client = MongoClient(uri)
 db = db_client["construction"]
-collection = db["encodings"]
+collection = db["encodings_test"]
 # Send a ping to confirm a successful connection
 try:
     db_client.admin.command('ping')
@@ -56,8 +56,8 @@ stop_event = threading.Event()
 
 employee_data = None
 
-model2 = YOLO('C:\\FYP\\Flask-Server\\ai_server\\ai_model\\ppe_model.pt')
-photo_path = "C:\\FYP\\Flask-Server\\ai_server\\UI_photos\\"
+model2 = YOLO('ai_model\\ppe_model.pt')
+photo_path = "UI_photos\\"
 
 imgBackground = cv2.imread(photo_path + 'background.png')
 model = cv2.imread(photo_path + 'pageA.png')
