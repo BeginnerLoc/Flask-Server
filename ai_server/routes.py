@@ -5,8 +5,11 @@ import datetime
 from .ai_thread import AiThread
 import threading
 from utils.create_pdf import download_pdf
+import openai
 
 main = Blueprint("main", __name__)
+
+openai.api_key = "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"
 
 @main.after_request
 def add_cors_headers(response):
@@ -169,3 +172,31 @@ def num_hazards(project_id):
     return jsonify(response)
 
     
+@main.route('/ask_gpt', methods=['POST'])
+def ask_gpt():
+    data = request.json
+    answer = explain_answer(data)
+    
+    response = {"answer": answer}
+    return jsonify(response)
+
+    
+def explain_answer(data):
+    
+    user_prompt= f"""
+        <data>{data}</data>
+        ####
+        The <data> is top 10% of the breaches in my construction site,
+        analyse it and give me suggestion
+    """
+    # print(user_prompt)
+    # Send user prompt to OpenAI and get a response
+    response = openai.Completion.create(
+        engine='text-davinci-003',
+        prompt=user_prompt,
+        max_tokens=1500,  # Adjust the max tokens limit as needed
+        temperature=0.5  # Adjust the temperature for more or less randomness
+    )
+    answer = response.choices[0].text.strip()
+    print(answer)            
+    return answer

@@ -12,4 +12,5 @@ reportlab
 datetime
 io
 python-telegram-bot
+open-ai
 # myenv\Scripts\activate.bat
