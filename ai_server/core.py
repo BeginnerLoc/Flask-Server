@@ -12,7 +12,6 @@ import os
 import asyncio
 from telegram import Bot
 import httpx
-import base64
 
 
 #Function to send telegram message with 3 tries in case of errors
@@ -45,9 +44,7 @@ uri = "mongodb+srv://loctientran235:PUp2XTv7tkArDjJB@c290.5lmj4xh.mongodb.net/?r
 # Create a new client and connect to the server
 db_client = MongoClient(uri)
 db = db_client["construction"]
-collection = db["encodings_test2"]
-collection2 = db["breach_images"]
-
+collection = db["encodings_test"]
 # Send a ping to confirm a successful connection
 try:
     db_client.admin.command('ping')
@@ -132,8 +129,6 @@ def recognition():
     encoding_list = retrieve_encoding()
 
     checkin_recorded = set() # Initializes an empty set called checkin_recorded. This set will be used to keep track of the names of employees who have already checked in to avoid duplicates.
-    # Create a set to keep track of workers with PPE breaches
-    ppe_breach_set = set()
 
     
     known_face_encodings = [encoding[1] for encoding in encoding_list]
@@ -169,7 +164,7 @@ def recognition():
         cv2.imshow('Video', imgBackground)
         for face_encoding in face_encodings:
             # See if the face is a match for the known face(s)
-            matches = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance=0.5)
+            matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
             name = "Unknown"
 
             # If a match was found in known_face_encodings, just use the first one.
@@ -329,33 +324,6 @@ def recognition():
                     else:
                         imgBackground[635:635 + 35, 900:900 + 300] = clear_text
                         cv2.putText(imgBackground, "Please wear PPE!!", (910, 655), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 2)
-
-            # NEW CODE: Capture image when there is a PPE breach
-            if name != "Unknown" and name not in ppe_breach_set:
-                ppe_breach_set.add(name)
-                if "NO-Hardhat" in ppe_item or "NO-Safety Vest" in ppe_item:
-                    
-                    # Wait for 5 seconds
-                    time.sleep(5)
-
-                    # Capture the frame as an image
-                    _, buffer = cv2.imencode(".jpg", frame)
-                    encoded_image = base64.b64encode(buffer).decode("utf-8")
-
-                    # Determine the breach type
-                    breach_type = []
-                    if "NO-Hardhat" in ppe_item:
-                        breach_type.append("NO-Hardhat")
-                    if "NO-Safety Vest" in ppe_item:
-                        breach_type.append("NO-Safety Vest")
-
-                    # Save the encoded image in MongoDB
-                    collection2.insert_one({
-                        "name": name,
-                        "image": encoded_image,
-                        "breach_type": breach_type,
-                        "timestamp": datetime.now()
-                    })
 
         # Display the results
         cv2.imshow('Video', imgBackground)
