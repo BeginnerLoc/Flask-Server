@@ -9,7 +9,7 @@ import openai
 
 main = Blueprint("main", __name__)
 
-openai.api_key = "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"
+openai.api_key = "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"
 
 @main.after_request
 def add_cors_headers(response):
@@ -186,7 +186,7 @@ def explain_answer(data):
     user_prompt= f"""
         <data>{data}</data>
         ####
-        Analyze the data, give 50 words answer
+        Analyze the data and give suggestion for improvement, give 50 words answer
     """
     # print(user_prompt)
     # Send user prompt to OpenAI and get a response
