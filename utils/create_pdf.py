@@ -9,16 +9,20 @@ from io import BytesIO
 def download_pdf():
     report_type = request.args.get('report_type')
     days = int(request.args.get('days'))
+    project_id = str(request.args.get('project_id'))
     print(report_type)
     print(days)
+    print(project_id)
     # Connect to the MongoDB database
     client = pymongo.MongoClient("mongodb+srv://Astro:enwVEQqCyk9gYBzN@c290.5lmj4xh.mongodb.net/")
     db = client["construction"]
-
+    
     if report_type == "incidents":
-        collection = db["Incidents"]
+        collection = db["Incidents" + str("_"+project_id)]
+        print(collection)
     elif report_type == "breaches":
-        collection = db["db_breaches"]
+        collection = db["db_breaches" + str("_"+project_id)]
+        print(collection)
         
     # Define the query based on the report type and days
     query = {}
