@@ -9,13 +9,13 @@ import openai
 
 main = Blueprint("main", __name__)
 
-openai.api_key = "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"
+openai.api_key = "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"
 
 @main.after_request
 def add_cors_headers(response):
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE')
+    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE')
     return response
 
 @main.route("/")
@@ -186,17 +186,16 @@ def explain_answer(data):
     user_prompt= f"""
         <data>{data}</data>
         ####
-        The <data> is top 10% of the breaches in my construction site,
-        analyse it and give me suggestion
+        Analyze the data, give 50 words answer
     """
     # print(user_prompt)
     # Send user prompt to OpenAI and get a response
-    response = openai.Completion.create(
-        engine='text-davinci-003',
-        prompt=user_prompt,
-        max_tokens=1500,  # Adjust the max tokens limit as needed
-        temperature=0.5  # Adjust the temperature for more or less randomness
+    response = openai.ChatCompletion.create(
+        model='gpt-3.5-turbo',
+        max_tokens=500,  # Adjust the max tokens limit as needed
+        temperature=1,  # Adjust the temperature for more or less randomness
+        messages=[{"role": "system", "content": "You are a helpful assistant."},{"role": "user", "content": user_prompt}]
     )
-    answer = response.choices[0].text.strip()
+    answer = response.choices[0].message.content
     print(answer)            
     return answer
