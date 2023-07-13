@@ -9,7 +9,7 @@ import openai
 
 main = Blueprint("main", __name__)
 
-openai.api_key = "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"
+openai.api_key = "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"
 
 @main.after_request
 def add_cors_headers(response):
@@ -186,16 +186,25 @@ def explain_answer(data):
     user_prompt= f"""
         <data>{data}</data>
         ####
-        Analyze the data and give suggestion for improvement, give 50 words answer
+        Give me the analysis of data and give suggestion for improvement, give 50 words answer
     """
     # print(user_prompt)
     # Send user prompt to OpenAI and get a response
-    response = openai.ChatCompletion.create(
-        model='gpt-3.5-turbo',
+    # response = openai.ChatCompletion.create(
+    #     model='gpt-3.5-turbo',
+    #     max_tokens=500,  # Adjust the max tokens limit as needed
+    #     temperature=1,  # Adjust the temperature for more or less randomness
+    #     messages=[{"role": "system", "content": "You are a helpful assistant."},{"role": "user", "content": user_prompt}]
+    # )
+    # answer = response.choices[0].message.content
+
+    response = openai.Completion.create(
+        engine='text-davinci-003',
+        prompt=user_prompt,
         max_tokens=500,  # Adjust the max tokens limit as needed
-        temperature=1,  # Adjust the temperature for more or less randomness
-        messages=[{"role": "system", "content": "You are a helpful assistant."},{"role": "user", "content": user_prompt}]
+        temperature=0.5 # Adjust the temperature for more or less randomness
     )
-    answer = response.choices[0].message.content
+    answer = response.choices[0].text.strip()
+
     print(answer)            
     return answer
