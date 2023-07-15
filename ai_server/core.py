@@ -147,10 +147,13 @@ def recognition():
 
     while True:
         # Grab a single frame of video
-        ret, frame = video_capture.read()
+        ret, frame = video_capture.read() 
 
         imgBackground[158:158 + 480, 52:52 + 640] = frame
         imgBackground[30:30 + 674, 800:800 + 440] = model
+
+        #Capture the frame with the plotting boxes for breach images
+        frame2 = imgBackground[158:158 + 480, 52:52 + 640]
 
         #Only process every other frame of video to save time
         #if process_this_frame:
@@ -207,7 +210,7 @@ def recognition():
                     position = None
                     worker_id = None
 
-                collection = db["checkin"]
+                collection = db["checkin_1"]
 
                 checkin_entry = {
                     "name": name,
@@ -220,7 +223,9 @@ def recognition():
                 checkin_recorded.add(name)
 
                 # Insert the check-in data for the day into the MongoDB collection
-                collection.update_one({"date": checkin_data["date"]}, {"$push": {"check_ins": {"$each": checkin_data["check_ins"]}}}, upsert=True)
+                collection.update_one({"date": checkin_data["date"]}, 
+                                      {"$push": {"check_ins": {"$each": checkin_data["check_ins"]}}}, 
+                                      upsert=True)
 
         #process_this_frame = not process_this_frame
 
@@ -339,7 +344,7 @@ def recognition():
                     time.sleep(5)
 
                     # Capture the frame as an image
-                    _, buffer = cv2.imencode(".jpg", frame)
+                    _, buffer = cv2.imencode(".jpg", frame2)
                     encoded_image = base64.b64encode(buffer).decode("utf-8")
 
                     # Determine the breach type
