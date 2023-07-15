@@ -133,11 +133,12 @@ def all_workers(project_id):
 
     return jsonify(worker_list)
 
-# Count the number of workers and display it
-@main.route("/api/num_check_in")
-def live_checkin():
+# Count the number of workers and display it in "Workers Working Today"
+@main.route("/api/<project_id>/num_check_in")
+def live_checkin(project_id):
     db = db_client["construction"]
-    collection = db["checkin"]
+    collection_name = "checkin_" + project_id
+    collection = db[collection_name]
     
     # Get the current date and time
     current_datetime = datetime.datetime.now()

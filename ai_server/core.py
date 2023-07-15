@@ -210,7 +210,7 @@ def recognition():
                     position = None
                     worker_id = None
 
-                collection = db["checkin"]
+                collection = db["checkin_1"]
 
                 checkin_entry = {
                     "name": name,
@@ -223,7 +223,9 @@ def recognition():
                 checkin_recorded.add(name)
 
                 # Insert the check-in data for the day into the MongoDB collection
-                collection.update_one({"date": checkin_data["date"]}, {"$push": {"check_ins": {"$each": checkin_data["check_ins"]}}}, upsert=True)
+                collection.update_one({"date": checkin_data["date"]}, 
+                                      {"$push": {"check_ins": {"$each": checkin_data["check_ins"]}}}, 
+                                      upsert=True)
 
         #process_this_frame = not process_this_frame
 
