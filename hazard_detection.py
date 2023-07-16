@@ -128,7 +128,7 @@ async def main():
                                 print(f"Object {tracked_object_id} has remained in the same position for: {elapsed_time}")
                                 
                                 #If object is detected in ROI > 10 seconds, it will check if there is any mongodb entries posted in the last 10 mins
-                                if elapsed_time.total_seconds() > 3 and (datetime.now() - capture_time) > timedelta(minutes=10):
+                                if elapsed_time.total_seconds() > 10 and (datetime.now() - capture_time) > timedelta(minutes=10):
                                     print("True, More than 10s!")
                                     capture_image = frame.copy()
                                     capture_time = datetime.now()
