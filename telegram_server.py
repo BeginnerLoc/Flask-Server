@@ -25,14 +25,18 @@ async def reply_to_message(bot: Bot, update: Update):
 
     elif message_text == '/commandlist':
         response_text = textwrap.dedent("""\
+        Command Syntax for SafetyManager Bot \n
         /Commandlist - Use this to view the command list menu
         
         -- Breaches -- \n
         /breachList - Use this to see the last 20 incidents that had occurred. (i.e. /breachList) \n
         /breach <Number> - Use this to view an incident using the incident ID. (i.e. /breach 100) \n
-        /resolvebreach <Number> <Action> - Use this to resolve an incident using the incident ID. (i.e. /resolve 100 Verbal Warning was given.) \n\n
+        /resolveBreach <Number> <Action> - Use this to resolve an incident using the incident ID. (i.e. /resolve 100 Verbal Warning was given.) \n
+                              
         -- Incidents -- \n
-                                        
+        /hazardList - Use this to see the last 20 hazards that had occurred. (i.e. /hazardList) \n
+        /hazard <Number> - Use this to view a hazard using the hazard ID. (i.e. /hazard 100) \n
+        /resolveHazard - Use this to resolve a hazard using the hazard ID. (i.e. /resolve 100 Hazard was removed.)            
         """)
 
     elif message_text == '/breachlist':
@@ -109,7 +113,26 @@ async def reply_to_message(bot: Bot, update: Update):
             response_text = "The ID that you have input is invalid"
 
     elif message_text.startswith('/resolvebreach'):
-         incident_id = int(message_text.split(' ')[-1])
+            # Split the message text by space
+        command_parts = message_text.split(' ')
+
+        # Check if the command has at least three parts
+        if len(command_parts) >= 3:
+            incident_id = int(command_parts[1])
+            action = ' '.join(command_parts[2:])  # Join the remaining parts as the action
+            
+            # response_text = f"Resolve breach {incident_id}: {action}"
+
+            document = await search_mongo_id("breaches", incident_id)
+            if document :
+                resolved = await changeResolved("breaches", incident_id, action)
+                if resolved: 
+                    response_text = "Incident id " + str(incident_id) + " has been marked as resolved with the action of '" + action +"'"
+                else:
+                    response_text = "Incident id: " + str(incident_id) + " could not have been resolved"
+        else:
+            response_text = "Invalid command format. Please use /resolveBreach <Number> <Action>."
+
 
 
     else:
@@ -126,16 +149,48 @@ async def search_mongo_id(type, id):
 
     if type == "breaches":
         collection = db["breach_images"]
+        document = collection.find_one({"breach_id": id})
     elif type == "hazards":
         collection = db["hazards_1"]
+        document = collection.find_one({"breach_id": id})
     else:
         return None
 
-    document = collection.find_one({"breach_id": id})
+    
     if document:
         return document
     else:
         return None  # No document found
+
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
+async def changeResolved(type, id, reason):
+        # Connect to MongoDB
+    client = pymongo.MongoClient("mongodb+srv://Astro:enwVEQqCyk9gYBzN@c290.5lmj4xh.mongodb.net/")
+    db = client["construction"]
+
+    if type == "breaches":
+        collection = db["breach_images"]
+    elif type == "hazards":
+        collection = db["hazards_1"]
+    else:
+        return False  # Return False if type is invalid
+    try:
+        if type == "breaches":
+            # Update the document with the provided id
+            collection.update_one(
+                {"breach_id": id},
+                {"$set": {"case_resolved": True, "case_resolution": reason}}
+            )
+        elif type == "hazards":
+            collection.update_one(
+                {"hazard_id": id},
+                {"$set": {"case_resolved": True, "case_resolution": reason}}
+            )
+        client.close()
+        return True  # Return True if the update is successful
+    except pymongo.errors.ConnectionFailure as e:
+        print(f"Connection failed: {e}")
+        return False  # Return False if the update fails
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 async def breachList():
