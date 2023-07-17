@@ -78,8 +78,10 @@ async def store_image_in_mongodb(image, item_name):
                 "timestamp": datetime.now(),
                 "location": "Walkway",
                 "item": item_name,
-                "hazard_id": next_breach_id
+                "hazard_id": next_breach_id,
+                "case_resolved": False
             }
+            
             collection.insert_one(post)
             print("Posting successful")
             client.close()
@@ -148,7 +150,6 @@ async def main():
                                     # Convert the capture image to bytes
                                     retval, buffer = cv2.imencode('.jpg', capture_image)
                                     image_bytes = buffer.tobytes()
-
                                     await send_message(bot_token, chat_id, item_name, image_bytes, location, id)
 
                             else:
