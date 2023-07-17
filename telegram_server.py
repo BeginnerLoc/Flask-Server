@@ -39,6 +39,7 @@ async def reply_to_message(bot: Bot, update: Update):
         /resolveHazard - Use this to resolve a hazard using the hazard ID. (i.e. /resolve 100 Hazard was removed.)            
         """)
 
+    # View the last 20 breaches that had happened
     elif message_text == '/breachlist':
         breaches = await breachList()
         if breaches:
@@ -63,6 +64,7 @@ async def reply_to_message(bot: Bot, update: Update):
         else:
             response_text = "No breaches found."
 
+    #View the specific breach with the specific ID
     elif message_text.startswith('/breach'):
         # Extract the incident ID from the message text
         incident_id = int(message_text.split(' ')[-1])
@@ -112,16 +114,15 @@ async def reply_to_message(bot: Bot, update: Update):
         else:
             response_text = "The ID that you have input is invalid"
 
+    # Resolve the breaches using /resolvebreach <Number> <Action> which would be updated in the database
     elif message_text.startswith('/resolvebreach'):
-            # Split the message text by space
+        # Split the message text by space
         command_parts = message_text.split(' ')
 
         # Check if the command has at least three parts
         if len(command_parts) >= 3:
             incident_id = int(command_parts[1])
             action = ' '.join(command_parts[2:])  # Join the remaining parts as the action
-            
-            # response_text = f"Resolve breach {incident_id}: {action}"
 
             document = await search_mongo_id("breaches", incident_id)
             if document :
@@ -130,10 +131,40 @@ async def reply_to_message(bot: Bot, update: Update):
                     response_text = "Incident id " + str(incident_id) + " has been marked as resolved with the action of '" + action +"'"
                 else:
                     response_text = "Incident id: " + str(incident_id) + " could not have been resolved"
+            else:
+                response_text = "The Incident id you have entered is invalid or not in the Database!"
         else:
             response_text = "Invalid command format. Please use /resolveBreach <Number> <Action>."
 
+    # TODO: Implement /hazardList to view the last 20 hazards
+    elif message_text == '/hazardList':
+        print("Hazard List!")
+    
+    # TODO: Implement /hazard to view the specific hazard with the specific ID
+    elif message_text.startswith('/hazard'):
+        print("Hazard!")
 
+    # Resolve the hazard using /resolvehazard <Number> <Action> which would be updated in the database
+    elif message_text.startswith('/resolvehazard'):
+        # Split the message text by space
+        command_parts = message_text.split(' ')
+
+        # Check if the command has at least three parts
+        if len(command_parts) >= 3:
+            hazard_id = int(command_parts[1])
+            action = ' '.join(command_parts[2:])  # Join the remaining parts as the action
+
+            document = await search_mongo_id("hazards", hazard_id)
+            if document :
+                resolved = await changeResolved("hazards", hazard_id, action)
+                if resolved: 
+                    response_text = "Incident id " + str(hazard_id) + " has been marked as resolved with the action of '" + action +"'"
+                else:
+                    response_text = "Incident id: " + str(hazard_id) + " could not have been resolved"
+            else:
+                response_text = "The Hazard id you have entered is invalid or not in the Database!"
+        else:
+            response_text = "Invalid command format. Please use /resolveHazard <Number> <Action>."
 
     else:
         response_text = f"Invalid Action or Command. Please use /Commandlist to get a list of valid commands."
@@ -152,7 +183,7 @@ async def search_mongo_id(type, id):
         document = collection.find_one({"breach_id": id})
     elif type == "hazards":
         collection = db["hazards_1"]
-        document = collection.find_one({"breach_id": id})
+        document = collection.find_one({"hazard_id": id})
     else:
         return None
 
