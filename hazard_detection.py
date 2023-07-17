@@ -9,7 +9,7 @@ import base64
 import asyncio
 import httpx 
 
-async def send_message(bot_token, chat_id, item, image, location):
+async def send_message(bot_token, chat_id, item, image, location, id):
     base64_image = base64.b64encode(image).decode('utf-8')  # Decode base64 to string
     
     retries = 3
@@ -20,7 +20,7 @@ async def send_message(bot_token, chat_id, item, image, location):
                     f"https://api.telegram.org/bot{bot_token}/sendPhoto",
                     data={"chat_id": chat_id},
                     files={"photo": ("image.jpg", image, "image/jpeg")},
-                    params={"caption": f"{item} was found at\nLocation: {location}\nTime: {datetime.now()}"}
+                    params={"caption": f"Hazard_ID: {id}\n{item} was found at\nLocation: {location}\nTime: {datetime.now()}"}
                 )
                 print(f"Response Status Code: {response.status_code}")
                 break  # Break the loop if the request succeeds
@@ -34,7 +34,7 @@ async def send_message(bot_token, chat_id, item, image, location):
                 continue 
 
 # Initialise model
-model = YOLO('Tools.pt')
+model = YOLO('./ai_server/ai_model/Tools.pt')
 model.model.conf_thres = 0.7  # Set detection threshold
 
 # Initialise the webcam capture device of index 0 and set its resolution to 640x480
@@ -68,21 +68,27 @@ async def store_image_in_mongodb(image, item_name):
             client = pymongo.MongoClient("mongodb+srv://Astro:enwVEQqCyk9gYBzN@c290.5lmj4xh.mongodb.net/")
             db = client["construction"]
             collection = db["hazards_1"]
+
+            # Get the highest existing breach_id and increment it
+            highest_breach = collection.find_one(sort=[("hazard_id", pymongo.DESCENDING)])
+            next_breach_id = highest_breach["hazard_id"] + 1 if highest_breach else 1
+
             post = {
                 "image": base64_image,
                 "timestamp": datetime.now(),
                 "location": "Walkway",
-                "item": item_name
+                "item": item_name,
+                "hazard_id": next_breach_id
             }
             collection.insert_one(post)
             print("Posting successful")
             client.close()
-            break  # Exit the loop if successful
+            return next_breach_id
         except pymongo.errors.ConnectionFailure as e:
             print(f"Connection failed (attempt {attempt}/{retries}): {e}")
             if attempt < retries - 1:
                 await asyncio.sleep(1)  # Wait before retrying
-
+    return None #If fail to add to mongodb
 async def main():
     # Variables for object tracking
     tracked_object_id = None
@@ -128,7 +134,8 @@ async def main():
                                 print(f"Object {tracked_object_id} has remained in the same position for: {elapsed_time}")
                                 
                                 #If object is detected in ROI > 10 seconds, it will check if there is any mongodb entries posted in the last 10 mins
-                                if elapsed_time.total_seconds() > 10 and (datetime.now() - capture_time) > timedelta(minutes=10):
+                                print(datetime.now() - capture_time)
+                                if elapsed_time.total_seconds() > 3 and (datetime.now() - capture_time) > timedelta(minutes=10):
                                     print("True, More than 10s!")
                                     capture_image = frame.copy()
                                     capture_time = datetime.now()
@@ -136,20 +143,20 @@ async def main():
                                     location = "Walkway"
 
                                     # if check_mongodb(item_name, location):
-                                    await store_image_in_mongodb(capture_image, item_name)
+                                    id = await store_image_in_mongodb(capture_image, item_name)
 
                                     # Convert the capture image to bytes
                                     retval, buffer = cv2.imencode('.jpg', capture_image)
                                     image_bytes = buffer.tobytes()
 
-                                    await send_message(bot_token, chat_id, item_name, image_bytes, location)
+                                    await send_message(bot_token, chat_id, item_name, image_bytes, location, id)
 
                             else:
-                                # Object has moved significantly, reset tracking variables
+                                # If object has moved significantly, reset tracking variables
                                 tracked_object_position = (x, y)
                                 tracked_object_timer = datetime.now()
                         else:
-                            # Object has changed, update tracking variables
+                            # Object type has changed, update tracking variables
                             tracked_object_id = int(c)
                             tracked_object_position = (x, y)
                             tracked_object_timer = datetime.now()
