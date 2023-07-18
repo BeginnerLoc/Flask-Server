@@ -7,24 +7,31 @@ import io
 from PIL import Image
 from tenacity import retry, stop_after_attempt, wait_fixed
 import logging
+import time
 
 bot_token = '6060060457:AAGRyic-1HVFcUy1dSEsdLMJo0rB9Mvz0y0'
 
-
-@retry(stop=stop_after_attempt(10), wait=wait_fixed(5))
+@retry(stop=stop_after_attempt(10), wait=wait_fixed(2)) 
 async def reply_to_message(bot: Bot, update: Update):
-    user_id = update.effective_user.id
-    message_text = update.message.text.lower()
-    chat_id = update.effective_chat.id
-    response_text = ""
-    chat_name = update.effective_user.first_name 
-    logging.info(f"User {chat_name} typed {message_text}")
+    user_id = update.effective_user.id #Get the user id of tele user
+    message_text = update.message.text.lower() #Get user input and convert to lower case
+    chat_id = update.effective_chat.id #Chatid of the tele user
+    response_text = "" #Default response text
+    chat_name = update.effective_user.first_name #Username 
+    logging.info(f"User {chat_name} typed {message_text}") #Used to log the message from tele user 
 
     if not message_text.startswith('/'):
         return
 
     if message_text == '/start':
         response_text = "Welcome, " + chat_name + " I am SafetyManager Bot!"
+
+    # elif message_text == '/ping': #For testing connective purposes only
+    #     start_time = time.time()
+    #     await bot.send_message(chat_id=chat_id, text="Pinging...")
+    #     end_time = time.time()
+    #     ping_time = end_time - start_time
+    #     response_text = f"Pong! Bot latency: {ping_time:.2f} seconds"
 
     elif message_text == '/commandlist':
         response_text = textwrap.dedent("""\
@@ -65,6 +72,7 @@ async def reply_to_message(bot: Bot, update: Update):
 
     # View the list of unresolved breaches that had happened
     elif message_text == '/unresolvedbreach':
+        breachesCount = 0
         breaches = await viewUnresolved("breaches")
         if breaches:
             response_text = "Unresolved Breaches:\n\n"
@@ -78,12 +86,12 @@ async def reply_to_message(bot: Bot, update: Update):
                 Name: {name}
                 Breach Type: {breach_type}\n
                 """)
-        else:
+                breachesCount += 1
+        if breachesCount == 0:
             response_text = "Congrats! There is no unresolved cases for now!."
 
-
     #View the specific breach with the specific ID
-    elif message_text.startswith('/breach'):
+    elif message_text.startswith('/breach '):
         # Extract the incident ID from the message text
         incident_id = int(message_text.split(' ')[-1])
         document = await search_mongo_id("breaches", incident_id)
@@ -133,7 +141,7 @@ async def reply_to_message(bot: Bot, update: Update):
             response_text = "The ID that you have input is invalid"
 
     # Resolve the breaches using /resolvebreach <Number> <Action> which would be updated in the database
-    elif message_text.startswith('/resolvebreach'):
+    elif message_text.startswith('/resolvebreach '):
         # Split the message text by space
         command_parts = message_text.split(' ')
 
@@ -173,8 +181,8 @@ async def reply_to_message(bot: Bot, update: Update):
         else:
             response_text = "No breaches found."
     
-    # TODO: Implement /hazard to view the specific hazard with the specific ID
-    elif message_text.startswith('/hazard'):
+    # View the specific hazard with the specific ID
+    elif message_text.startswith('/hazard '):
         # Extract the incident ID from the message text
         hazard_id = int(message_text.split(' ')[-1])
         document = await search_mongo_id("hazards", hazard_id)
@@ -212,7 +220,7 @@ async def reply_to_message(bot: Bot, update: Update):
             response_text = "The ID that you have input is invalid"
 
     # Resolve the hazard using /resolvehazard <Number> <Action> which would be updated in the database
-    elif message_text.startswith('/resolvehazard'):
+    elif message_text.startswith('/resolvehazard '):
         # Split the message text by space
         command_parts = message_text.split(' ')
 
@@ -233,7 +241,9 @@ async def reply_to_message(bot: Bot, update: Update):
         else:
             response_text = "Invalid command format. Please use /resolveHazard <Number> <Action>."
 
+    # View the list of unresolved hazards that had happened
     elif message_text == '/unresolvedhazard':
+        hazardCount = 0
         hazards = await viewUnresolved("hazards")
         if hazards:
             response_text = "Unresolved Hazards:\n\n"
@@ -247,17 +257,20 @@ async def reply_to_message(bot: Bot, update: Update):
                 Hazard Type: {hazard_type}
                 Case Resolved: {case_resolved}\n
                 """)
-        else:
+                hazardCount += 1
+        if hazardCount == 0:
             response_text = "Congrats! There is no unresolved cases for now!."
 
+    # If command is invalid, tell user command is not valid
     else:
         response_text = f"Invalid Action or Command. Please use /Commandlist to get a list of valid commands."
 
+    #If there is a response_text, use bot to send message to user
     if response_text:
         await bot.send_message(chat_id=chat_id, text=response_text)
 
 
-@retry(stop=stop_after_attempt(10), wait=wait_fixed(5))
+@retry(stop=stop_after_attempt(10), wait=wait_fixed(2))
 async def search_mongo_id(type, id):
     # Connect to MongoDB
     client = pymongo.MongoClient("mongodb+srv://Astro:enwVEQqCyk9gYBzN@c290.5lmj4xh.mongodb.net/")
@@ -279,7 +292,7 @@ async def search_mongo_id(type, id):
         return None  # No document found
 
 
-@retry(stop=stop_after_attempt(10), wait=wait_fixed(5))
+@retry(stop=stop_after_attempt(10), wait=wait_fixed(2))
 async def viewUnresolved(type):
     client = pymongo.MongoClient("mongodb+srv://Astro:enwVEQqCyk9gYBzN@c290.5lmj4xh.mongodb.net/")
     db = client["construction"]
@@ -298,7 +311,7 @@ async def viewUnresolved(type):
         return None  # No document found
 
 
-@retry(stop=stop_after_attempt(10), wait=wait_fixed(5))
+@retry(stop=stop_after_attempt(10), wait=wait_fixed(2))
 async def changeResolved(type, id, reason):
         # Connect to MongoDB
     client = pymongo.MongoClient("mongodb+srv://Astro:enwVEQqCyk9gYBzN@c290.5lmj4xh.mongodb.net/")
@@ -329,7 +342,7 @@ async def changeResolved(type, id, reason):
         return False  # Return False if the update fails
 
 
-@retry(stop=stop_after_attempt(10), wait=wait_fixed(5))
+@retry(stop=stop_after_attempt(10), wait=wait_fixed(2))
 async def breachList():
     try:
         client = pymongo.MongoClient("mongodb+srv://Astro:enwVEQqCyk9gYBzN@c290.5lmj4xh.mongodb.net/")
@@ -342,7 +355,7 @@ async def breachList():
         return None
 
 
-@retry(stop=stop_after_attempt(10), wait=wait_fixed(5))
+@retry(stop=stop_after_attempt(10), wait=wait_fixed(2))
 async def hazardList():
     try:
         client = pymongo.MongoClient("mongodb+srv://Astro:enwVEQqCyk9gYBzN@c290.5lmj4xh.mongodb.net/")
@@ -355,7 +368,7 @@ async def hazardList():
         return None
 
 
-@retry(stop=stop_after_attempt(10), wait=wait_fixed(5))
+@retry(stop=stop_after_attempt(10), wait=wait_fixed(2))
 async def main():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     bot = Bot(token=bot_token)
