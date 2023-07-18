@@ -38,13 +38,13 @@ async def reply_to_message(bot: Bot, update: Update):
         Command Syntax for SafetyManager Bot \n
         /Commandlist - Use this to view the command list menu
         
-        -- Breaches -- \n
+        -- Breaches -- 
         /breachList - Use this to see the last 20 incidents that had occurred. (i.e. /breachList) \n
         /breach <Number> - Use this to view an incident using the incident ID. (i.e. /breach 100) \n
         /resolveBreach <Number> <Action> - Use this to resolve an incident using the incident ID. (i.e. /resolve 100 Verbal Warning was given.) \n
         /unresolvedbreach - Use this to view the unresolved breaches. \n
                               
-        -- Incidents -- \n
+        -- Incidents --
         /hazardList - Use this to see the last 20 hazards that had occurred. (i.e. /hazardList) \n
         /hazard <Number> - Use this to view a hazard using the hazard ID. (i.e. /hazard 100) \n
         /resolveHazard - Use this to resolve a hazard using the hazard ID. (i.e. /resolve 100 Hazard was removed.)\n    
