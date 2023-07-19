@@ -277,7 +277,7 @@ async def search_mongo_id(type, id):
     db = client["construction"]
 
     if type == "breaches":
-        collection = db["breach_images"]
+        collection = db["db_breaches_2"]
         document = collection.find_one({"breach_id": id})
     elif type == "hazards":
         collection = db["hazards_1"]
@@ -298,7 +298,7 @@ async def viewUnresolved(type):
     db = client["construction"]
 
     if type == "breaches":
-        collection = db["breach_images"]
+        collection = db["db_breaches_2"]
     elif type == "hazards":
         collection = db["hazards_1"]
     else:
@@ -318,7 +318,7 @@ async def changeResolved(type, id, reason):
     db = client["construction"]
 
     if type == "breaches":
-        collection = db["breach_images"]
+        collection = db["db_breaches_2"]
     elif type == "hazards":
         collection = db["hazards_1"]
     else:
@@ -347,7 +347,7 @@ async def breachList():
     try:
         client = pymongo.MongoClient("mongodb+srv://Astro:enwVEQqCyk9gYBzN@c290.5lmj4xh.mongodb.net/")
         db = client["construction"]
-        collection = db["breach_images"]
+        collection = db["db_breaches_2"]
         breaches = collection.find().sort([("timestamp", pymongo.DESCENDING)]).limit(20)
         return list(breaches)
     except pymongo.errors.ConnectionFailure as e:
