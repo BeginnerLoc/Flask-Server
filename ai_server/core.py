@@ -348,27 +348,29 @@ def recognition():
             if name != "Unknown" and name not in ppe_breach_set:
                 ppe_breach_set.add(name)
                 if "NO-Hardhat" in ppe_item or "NO-Safety Vest" in ppe_item:
-                    
-                    # Wait for 5 seconds
+                    # Check if both NO-Hardhat and NO-Safety Vest breaches are present
+                    if "NO-Hardhat" in ppe_item and "NO-Safety Vest" in ppe_item:
+                        # Combine the descriptions for both breaches into a single description "No PPE"
+                        breach_type = "No-Hardhat & No-Safety Vest"
+                    else:
+                        # Use the individual breach descriptions if only one of them is present
+                        if "NO-Hardhat" in ppe_item:
+                            breach_type = "NO-Hardhat"
+                        elif "NO-Safety Vest" in ppe_item:
+                            breach_type = "NO-Safety Vest"
+
+                    # Delay for 5 seconds
                     time.sleep(5)
 
                     # Capture the frame as an image
                     _, buffer = cv2.imencode(".jpg", frame2)
                     encoded_image = base64.b64encode(buffer).decode("utf-8")
 
-                    # Determine the breach type
-                    breach_type = []
-                    if "NO-Hardhat" in ppe_item:
-                        breach_type.append("NO-Hardhat")
-                    if "NO-Safety Vest" in ppe_item:
-                        breach_type.append("NO-Safety Vest")
-
                     # Find the document with the highest breach ID
                     largest_breach = collection2.find_one(sort=[("breach_id", -1)])
 
                     if largest_breach is None:
                         next_breach_id = 1
-
                     else:
                         # Determine the next breach ID
                         next_breach_id = largest_breach["breach_id"] + 1
@@ -378,12 +380,12 @@ def recognition():
                     # Save the encoded image in MongoDB
                     collection2.insert_one({
                         "datetime": datetime.now(),
+                        "worker_name": name,
                         "description": breach_type,
-                        "worker_name": name,\
-                        "Severity": "",
+                        "breach_id": next_breach_id,
+                        "severity": "",
                         "evidence_photo": encoded_image,
                         "location": Location,
-                        "breach_id": next_breach_id,
                         "case_resolved": False
                     })
 
