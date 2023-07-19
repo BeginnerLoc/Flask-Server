@@ -15,15 +15,25 @@ import httpx
 import base64
 
 
-#Function to send telegram message with 3 tries in case of errors
-async def send_message(bot_token, chat_id, message):
+async def send_message(bot_token, chat_id, name, breach, image, location, breach_id):
+    base64_image = base64.b64encode(image).decode('utf-8')  # Decode base64 to string
+    
     retries = 3
     for attempt in range(1, retries + 1):
         try:
             async with httpx.AsyncClient(timeout=httpx.Timeout(timeout=5.0)) as client:
                 response = await client.post(
-                    f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                    json={"chat_id": chat_id, "text": message}
+                    f"https://api.telegram.org/bot{bot_token}/sendPhoto",
+                    data={"chat_id": chat_id},
+                    files={"photo": ("image.jpg", image, "image/jpeg")},
+                    params = {
+                        "caption": (
+                            f"Breach number:{breach_id} \n\n"
+                            f"{name} was not wearing {', '.join(breach)}\n"
+                            f"Location of breach: {location}\n"
+                            f"Time of breach: {datetime.now()}"
+                        )
+                    }
                 )
                 print(f"Response Status Code: {response.status_code}")
                 break  # Break the loop if the request succeeds
@@ -33,7 +43,7 @@ async def send_message(bot_token, chat_id, message):
                 print("Request failed after maximum retries")
                 break
             else:
-                print("Retrying...")
+                print("Retrying...") 
                 continue 
 
 #Telegram Bot token and Chat ID (Astro's Chat ID)
@@ -147,10 +157,13 @@ def recognition():
 
     while True:
         # Grab a single frame of video
-        ret, frame = video_capture.read()
+        ret, frame = video_capture.read() 
 
         imgBackground[158:158 + 480, 52:52 + 640] = frame
         imgBackground[30:30 + 674, 800:800 + 440] = model
+
+        #Capture the frame with the plotting boxes for breach images
+        frame2 = imgBackground[158:158 + 480, 52:52 + 640]
 
         #Only process every other frame of video to save time
         #if process_this_frame:
@@ -207,7 +220,7 @@ def recognition():
                     position = None
                     worker_id = None
 
-                collection = db["checkin"]
+                collection = db["checkin_1"]
 
                 checkin_entry = {
                     "name": name,
@@ -220,7 +233,9 @@ def recognition():
                 checkin_recorded.add(name)
 
                 # Insert the check-in data for the day into the MongoDB collection
-                collection.update_one({"date": checkin_data["date"]}, {"$push": {"check_ins": {"$each": checkin_data["check_ins"]}}}, upsert=True)
+                collection.update_one({"date": checkin_data["date"]}, 
+                                      {"$push": {"check_ins": {"$each": checkin_data["check_ins"]}}}, 
+                                      upsert=True)
 
         #process_this_frame = not process_this_frame
 
@@ -339,7 +354,7 @@ def recognition():
                     time.sleep(5)
 
                     # Capture the frame as an image
-                    _, buffer = cv2.imencode(".jpg", frame)
+                    _, buffer = cv2.imencode(".jpg", frame2)
                     encoded_image = base64.b64encode(buffer).decode("utf-8")
 
                     # Determine the breach type
@@ -349,13 +364,31 @@ def recognition():
                     if "NO-Safety Vest" in ppe_item:
                         breach_type.append("NO-Safety Vest")
 
+                    # Find the document with the highest breach ID
+                    largest_breach = collection2.find_one(sort=[("breach_id", -1)])
+                    # Determine the next breach ID
+                    next_breach_id = largest_breach["breach_id"] + 1
+
+                    Location = "Entrance A"
+
                     # Save the encoded image in MongoDB
                     collection2.insert_one({
                         "name": name,
                         "image": encoded_image,
                         "breach_type": breach_type,
-                        "timestamp": datetime.now()
+                        "timestamp": datetime.now(),
+                        "location": Location,
+                        "breach_id": next_breach_id,
+                        "case_resolved": False
                     })
+
+                    #Telegram Bot
+                    # Convert the capture image to bytes
+                    capture_image = frame.copy()
+                    retval, buffer = cv2.imencode('.jpg', capture_image)
+                    image_bytes = buffer.tobytes()
+                    loop = asyncio.get_event_loop()
+                    loop.run_until_complete(send_message(bot_token, chat_id, name, breach_type, image_bytes, Location, next_breach_id))
 
         # Display the results
         cv2.imshow('Video', imgBackground)
