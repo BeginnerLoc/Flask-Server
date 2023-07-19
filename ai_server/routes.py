@@ -153,7 +153,7 @@ def live_checkin(project_id):
         response = {"num_check_ins": num_check_ins}
         return jsonify(response)
     else:
-        return 0 
+        return {"num_check_ins": 0}
     
 
 @main.route("/api/<project_id>/num_hazards")
