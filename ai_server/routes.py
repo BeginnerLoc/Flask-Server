@@ -36,7 +36,7 @@ def most_breaches(project_id):
     
     db = db_client["construction"]
     collection_name = 'db_breaches_' + project_id
-    collection = db["db_breaches"]
+    collection = db[collection_name]
     
     # retrieve documents from the collection
     result = collection.aggregate([
@@ -202,7 +202,7 @@ def explain_answer(data):
         engine='text-davinci-003',
         prompt=user_prompt,
         max_tokens=500,  # Adjust the max tokens limit as needed
-        temperature=0.5 # Adjust the temperature for more or less randomness
+        temperature=0.8 # Adjust the temperature for more or less randomness
     )
     answer = response.choices[0].text.strip()
 
