@@ -48,7 +48,7 @@ async def send_message(bot_token, chat_id, name, breach, image, location, breach
 
 #Telegram Bot token and Chat ID (Astro's Chat ID)
 bot_token = '5959752019:AAHZvf9E64dnXrYDPsX97ePMcoGz-t88KEw'
-chat_id  = '1629576653'
+chat_id  = '1031137384'
 
 
 uri = "mongodb+srv://loctientran235:PUp2XTv7tkArDjJB@c290.5lmj4xh.mongodb.net/?retryWrites=true&w=majority"
@@ -56,7 +56,7 @@ uri = "mongodb+srv://loctientran235:PUp2XTv7tkArDjJB@c290.5lmj4xh.mongodb.net/?r
 db_client = MongoClient(uri)
 db = db_client["construction"]
 collection = db["encodings_test2"]
-collection2 = db["breach_images"]
+collection2 = db["db_breaches_2"]
 
 # Send a ping to confirm a successful connection
 try:
@@ -65,7 +65,7 @@ try:
 except Exception as e:
     print(e)
 
-stop_event = threading.Event()
+stop_event = threading.Event() 
 
 employee_data = None
 
@@ -145,7 +145,6 @@ def recognition():
     # Create a set to keep track of workers with PPE breaches
     ppe_breach_set = set()
 
-    
     known_face_encodings = [encoding[1] for encoding in encoding_list]
     known_face_names = [encoding[0] for encoding in encoding_list]
     
@@ -366,17 +365,23 @@ def recognition():
 
                     # Find the document with the highest breach ID
                     largest_breach = collection2.find_one(sort=[("breach_id", -1)])
-                    # Determine the next breach ID
-                    next_breach_id = largest_breach["breach_id"] + 1
+
+                    if largest_breach is None:
+                        next_breach_id = 1
+
+                    else:
+                        # Determine the next breach ID
+                        next_breach_id = largest_breach["breach_id"] + 1
 
                     Location = "Entrance A"
 
                     # Save the encoded image in MongoDB
                     collection2.insert_one({
-                        "name": name,
-                        "image": encoded_image,
-                        "breach_type": breach_type,
-                        "timestamp": datetime.now(),
+                        "datetime": datetime.now(),
+                        "description": breach_type,
+                        "worker_name": name,\
+                        "Severity": "",
+                        "evidence_photo": encoded_image,
                         "location": Location,
                         "breach_id": next_breach_id,
                         "case_resolved": False
