@@ -34,8 +34,8 @@ async def send_message(bot_token, chat_id, item, image, location, id):
                 continue 
 
 # Initialise model
-model = YOLO('./ai_server/ai_model/Tools.pt')
-model.model.conf_thres = 0.7  # Set detection threshold
+model = YOLO('./ai_server/ai_model/best.pt')
+model.model.conf_thres = 0.6  # Set detection threshold
 
 # Initialise the webcam capture device of index 0 and set its resolution to 640x480
 cap = cv2.VideoCapture(0)
@@ -43,9 +43,9 @@ cap.set(3, 640)
 cap.set(4, 480)
 
 # Define the region of interest (ROI) coordinates
-roi_x1 = 150  # Adjust the left border size (in pixels)
+roi_x1 = 200  # Adjust the left border size (in pixels)
 roi_y1 = 0    # Set the top border to 0
-roi_x2 = int(cap.get(3)) - 150  # Adjust the right border size (in pixels)
+roi_x2 = int(cap.get(3)) - 200  # Adjust the right border size (in pixels)
 roi_y2 = int(cap.get(4))  # Set the bottom border to the full height of the frame
 
 
