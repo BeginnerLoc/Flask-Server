@@ -209,3 +209,41 @@ def explain_answer(data):
 
     print(answer)            
     return answer
+
+
+@main.route('/ask_gpt_breach_graph', methods=['POST'])
+def ask_gpt_breach_graph():
+    data = request.json
+    answer = explain_top_breach(data)
+    
+    response = {"answer": answer}
+    return jsonify(response)
+
+def explain_top_breach(data):
+    
+    user_prompt= f"""
+        <data>{data}</data>
+        ####
+        The data is the workers that committed the most number of breaches.
+        Give me suggestions for each worker on how to reduce the breaches
+    """
+    # print(user_prompt)
+    # Send user prompt to OpenAI and get a response
+    response = openai.ChatCompletion.create(
+        model='gpt-3.5-turbo',
+        max_tokens=500,  # Adjust the max tokens limit as needed
+        temperature=1,  # Adjust the temperature for more or less randomness
+        messages=[{"role": "system", "content": "You are a helpful assistant."},{"role": "user", "content": user_prompt}]
+    )
+    answer = response.choices[0].message.content
+
+    # response = openai.Completion.create(
+    #     engine='text-davinci-003',
+    #     prompt=user_prompt,
+    #     max_tokens=500,  # Adjust the max tokens limit as needed
+    #     temperature=0.8 # Adjust the temperature for more or less randomness
+    # )
+    # answer = response.choices[0].text.strip()
+
+    print(answer)            
+    return answer
