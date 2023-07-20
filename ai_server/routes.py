@@ -262,8 +262,19 @@ def get_breach_image(project_id, breach_id):
             # Get the base64 encoded image value from the "evidence_photo" field
             base64_image = breach['evidence_photo']
 
-            # You can send the base64_image as a response in JSON format or display it directly in the browser.
-            return jsonify({'image': base64_image})
+            # Retrieve worker's information from db_breaches
+            worker_name = breach['worker_name']
+            description = breach['description']
+            breach_id = breach['breach_id']
+            location = breach['location']
+
+            return jsonify({
+                'worker_name': worker_name,
+                'description': description,
+                'breach_id': breach_id,
+                'location': location,
+                'image': base64_image 
+                            })
 
         else:
             return jsonify({'error': 'Image not found for the given breach_id'}), 404
