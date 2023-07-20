@@ -268,18 +268,18 @@ def recognition():
             face_names = face_names[-15:]
             most_frequent_name = Counter(face_names).most_common(1)[0][0]
 
-            if employee_data == None or employee_data['name'] != most_frequent_name:        
-                thread = search_data_thread(most_frequent_name)
-                # Set the stop_event object to stop the thread
-                stop_event.set()
-                # Wait for the thread to finish
-                thread.join()
-                # Reset the stop_event object for the next iteration
-                stop_event.clear()
-
-            role = employee_data["worker_role"]
-
             if most_frequent_name != "Unknown" and most_frequent_name != None:
+                if employee_data == None or employee_data['name'] != most_frequent_name:        
+                    thread = search_data_thread(most_frequent_name)
+                    # Set the stop_event object to stop the thread
+                    stop_event.set()
+                    # Wait for the thread to finish
+                    thread.join()
+                    # Reset the stop_event object for the next iteration
+                    stop_event.clear()
+
+                    role = employee_data["worker_role"]
+
                 cv2.putText(imgBackground, "Hi, " + most_frequent_name, (875, 120), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2)
                 cv2.putText(imgBackground, "PPE Require:", (830, 290), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), 2)
                 cv2.putText(imgBackground, "Your JobScopes Today is:", (835, 210), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), 2)
