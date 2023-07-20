@@ -159,7 +159,7 @@ def live_checkin(project_id):
 @main.route("/api/<project_id>/num_hazards")
 def num_hazards(project_id):
     db = db_client["construction"]
-    collection_name = "incidents_" + project_id
+    collection_name = "hazards_" + project_id
     collection = db[collection_name]
 
     result = collection.count_documents({})
@@ -225,7 +225,7 @@ def explain_top_breach(data):
         <data>{data}</data>
         ####
         The data is the workers that committed the most number of breaches.
-        Give me suggestions for each worker on how to reduce the breaches
+        Give detailed suggestions for each worker on how to reduce the breaches
     """
     # print(user_prompt)
     # Send user prompt to OpenAI and get a response
@@ -233,7 +233,7 @@ def explain_top_breach(data):
         model='gpt-3.5-turbo',
         max_tokens=500,  # Adjust the max tokens limit as needed
         temperature=1,  # Adjust the temperature for more or less randomness
-        messages=[{"role": "system", "content": "You are a helpful assistant."},{"role": "user", "content": user_prompt}]
+        messages=[{"role": "system", "content": "You are an expert Data Analyst."},{"role": "user", "content": user_prompt}]
     )
     answer = response.choices[0].message.content
 
