@@ -408,38 +408,6 @@ def recognition():
     # Release handle to the webcam
     video_capture.release()
     cv2.destroyAllWindows()
-
-
-#play the bounding boxes with the label and the score :
-# def box_label(image, box, label='', color=(128, 128, 128), txt_color=(255, 255, 255)):
-#   #Construction workers are required to wear hat - vest - mask
-#   #Managers are required to wear hat - vest
-#     #   requirements = []
-#     #   if employee_data!= None and employee_data['position'] == 'Manager':    
-#     #     requirements = ['NO-Mask']
-    
-#     #   if label != 'Person':
-#     lw = max(round(sum(image.shape) / 2 * 0.003), 2)
-#     p1, p2 = (int(box[0]), int(box[1])), (int(box[2]), int(box[3]))
-#     cv2.rectangle(image, p1, p2, color, thickness=lw, lineType=cv2.LINE_AA)
-#     if label and label != "Person":
-#         tf = max(lw - 1, 1)  # font thickness
-#         w, h = cv2.getTextSize(label, 0, fontScale=lw / 3, thickness=tf)[0]  # text width, height
-#         outside = p1[1] - h >= 3
-#         p2 = p1[0] + w, p1[1] - h - 3 if outside else p1[1] + h + 3
-#         cv2.rectangle(image, p1, p2, color, -1, cv2.LINE_AA)  # filled
-#         cv2.putText(image,
-#                     label, (p1[0], p1[1] - 2 if outside else p1[1] + h + 2),
-#                     0,
-#                     lw / 3,
-#                     txt_color,
-#                     thickness=tf,
-#                     lineType=cv2.LINE_AA)
-        
-#         #Status
-#         #print(label)
-
-#         return label
         
 
 def plot_bboxes(image, boxes, labels=[], colors=[], score=True, conf=None):
@@ -456,6 +424,9 @@ def plot_bboxes(image, boxes, labels=[], colors=[], score=True, conf=None):
                   (0,0,255),(0,0,255),(123,63,0),
                   (123,63,0),(0,255,0),(123,63,0),(123,63,0)]
 
+    label_list = []
+    exclude_labels = ['Person', 'Mask', 'NO-Mask', 'machinery', 'vehicle']
+
     #plot each boxes
     for box in boxes:
         #add score in label if score=True
@@ -469,28 +440,28 @@ def plot_bboxes(image, boxes, labels=[], colors=[], score=True, conf=None):
                 color = colors[int(box[-1])]
             else:
                 color = colors[int(box[-1])]
-
+            
             #box label
-            if label != 'Person' and label != 'Mask' and label != 'NO-Mask' and label != 'machinery'and label != 'vehicle':
+            if label not in exclude_labels and label not in label_list:
+                label_list.append(label)
+
                 lw = max(round(sum(image.shape) / 2 * 0.003), 2)
                 p1, p2 = (int(box[0]), int(box[1])), (int(box[2]), int(box[3]))
                 cv2.rectangle(image, p1, p2, color, thickness=lw, lineType=cv2.LINE_AA)
-                if label and label != "Person":
-                    tf = max(lw - 1, 1)  # font thickness
-                    w, h = cv2.getTextSize(label, 0, fontScale=lw / 3, thickness=tf)[0]  # text width, height
-                    outside = p1[1] - h >= 3
-                    p2 = p1[0] + w, p1[1] - h - 3 if outside else p1[1] + h + 3
-                    cv2.rectangle(image, p1, p2, color, -1, cv2.LINE_AA)  # filled
-                    cv2.putText(image,
-                                label, (p1[0], p1[1] - 2 if outside else p1[1] + h + 2),
-                                0,
-                                lw / 3,
-                                color=(255, 255, 255),
-                                thickness=tf,
-                                lineType=cv2.LINE_AA)
-                    output.append(label)
+                tf = max(lw - 1, 1)  # font thickness
+                w, h = cv2.getTextSize(label, 0, fontScale=lw / 3, thickness=tf)[0]  # text width, height
+                outside = p1[1] - h >= 3
+                p2 = p1[0] + w, p1[1] - h - 3 if outside else p1[1] + h + 3
+                cv2.rectangle(image, p1, p2, color, -1, cv2.LINE_AA)  # filled
+                cv2.putText(image,
+                            label, (p1[0], p1[1] - 2 if outside else p1[1] + h + 2),
+                            0,
+                            lw / 3,
+                            color=(255, 255, 255),
+                            thickness=tf,
+                            lineType=cv2.LINE_AA)
+                output.append(label)
     return output
-
 
 # encoding = train_encoding("Loc.1.jpg")
 # save_encodings(encoding)
