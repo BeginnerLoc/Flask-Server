@@ -219,7 +219,8 @@ def recognition():
                     position = None
                     worker_id = None
 
-                collection = db["checkin_1"]
+                # collection = db["checkin_1"]
+                collection = db["checkin_2"] 
 
                 checkin_entry = {
                     "name": name,
@@ -351,7 +352,7 @@ def recognition():
                     # Check if both NO-Hardhat and NO-Safety Vest breaches are present
                     if "NO-Hardhat" in ppe_item and "NO-Safety Vest" in ppe_item:
                         # Combine the descriptions for both breaches into a single description "No PPE"
-                        breach_type = "No-Hardhat & No-Safety Vest"
+                        breach_type = "NO-Hardhat & NO-Safety Vest"
                     else:
                         # Use the individual breach descriptions if only one of them is present
                         if "NO-Hardhat" in ppe_item:

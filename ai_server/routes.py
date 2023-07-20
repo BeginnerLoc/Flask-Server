@@ -247,3 +247,27 @@ def explain_top_breach(data):
 
     print(answer)            
     return answer
+
+# Return the breach image from db_breaches_2 according to the breach ID.
+@main.route('/api/<project_id>/get_breach_image/<string:breach_id>', methods=['GET'])
+def get_breach_image(project_id, breach_id):
+    db = db_client["construction"]
+    collection_name = "db_breaches_" + project_id
+    collection = db[collection_name]
+
+    try:
+        # Find the breach record in the database based on the breach_id
+        breach = collection.find_one({'breach_id': int(breach_id)})
+        if breach is not None and 'evidence_photo' in breach:
+            # Get the base64 encoded image value from the "evidence_photo" field
+            base64_image = breach['evidence_photo']
+
+            # You can send the base64_image as a response in JSON format or display it directly in the browser.
+            return jsonify({'image': base64_image})
+
+        else:
+            return jsonify({'error': 'Image not found for the given breach_id'}), 404
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
