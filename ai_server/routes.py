@@ -9,7 +9,7 @@ import openai
 
 main = Blueprint("main", __name__)
 
-openai.api_key = "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"
+openai.api_key = "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"
 
 @main.after_request
 def add_cors_headers(response):
@@ -173,80 +173,80 @@ def num_hazards(project_id):
     return jsonify(response)
 
     
-@main.route('/ask_gpt', methods=['POST'])
-def ask_gpt():
-    data = request.json
-    answer = explain_answer(data)
+# @main.route('/ask_gpt', methods=['POST'])
+# def ask_gpt():
+#     data = request.json
+#     answer = explain_answer(data)
     
-    response = {"answer": answer}
-    return jsonify(response)
+#     response = {"answer": answer}
+#     return jsonify(response)
 
     
-def explain_answer(data):
+# def explain_answer(data):
     
-    user_prompt= f"""
-        <data>{data}</data>
-        ####
-        Give me the analysis of data and give suggestion for improvement, give 50 words answer
-    """
-    # print(user_prompt)
-    # Send user prompt to OpenAI and get a response
-    # response = openai.ChatCompletion.create(
-    #     model='gpt-3.5-turbo',
-    #     max_tokens=500,  # Adjust the max tokens limit as needed
-    #     temperature=1,  # Adjust the temperature for more or less randomness
-    #     messages=[{"role": "system", "content": "You are a helpful assistant."},{"role": "user", "content": user_prompt}]
-    # )
-    # answer = response.choices[0].message.content
+#     user_prompt= f"""
+#         <data>{data}</data>
+#         ####
+#         Give me the analysis of data and give suggestion for improvement, give 50 words answer
+#     """
+#     # print(user_prompt)
+#     # Send user prompt to OpenAI and get a response
+#     response = openai.ChatCompletion.create(
+#         model='gpt-3.5-turbo',
+#         max_tokens=500,  # Adjust the max tokens limit as needed
+#         temperature=1,  # Adjust the temperature for more or less randomness
+#         messages=[{"role": "system", "content": "You are a helpful assistant."},{"role": "user", "content": user_prompt}]
+#     )
+#     answer = response.choices[0].message.content
 
-    response = openai.Completion.create(
-        engine='text-davinci-003',
-        prompt=user_prompt,
-        max_tokens=500,  # Adjust the max tokens limit as needed
-        temperature=0.8 # Adjust the temperature for more or less randomness
-    )
-    answer = response.choices[0].text.strip()
+#     # response = openai.Completion.create(
+#     #     engine='text-davinci-003',
+#     #     prompt=user_prompt,
+#     #     max_tokens=500,  # Adjust the max tokens limit as needed
+#     #     temperature=0.8 # Adjust the temperature for more or less randomness
+#     # )
+#     # answer = response.choices[0].text.strip()
 
-    print(answer)            
-    return answer
+#     print(answer)            
+#     return answer
 
 
-@main.route('/ask_gpt_breach_graph', methods=['POST'])
-def ask_gpt_breach_graph():
-    data = request.json
-    answer = explain_top_breach(data)
+# @main.route('/ask_gpt_breach_graph', methods=['POST'])
+# def ask_gpt_breach_graph():
+#     data = request.json
+#     answer = explain_top_breach(data)
     
-    response = {"answer": answer}
-    return jsonify(response)
+#     response = {"answer": answer}
+#     return jsonify(response)
 
-def explain_top_breach(data):
+# def explain_top_breach(data):
     
-    user_prompt= f"""
-        <data>{data}</data>
-        ####
-        The data is the workers that committed the most number of breaches.
-        Give detailed suggestions for each worker on how to reduce the breaches
-    """
-    # print(user_prompt)
-    # Send user prompt to OpenAI and get a response
-    response = openai.ChatCompletion.create(
-        model='gpt-3.5-turbo',
-        max_tokens=500,  # Adjust the max tokens limit as needed
-        temperature=1,  # Adjust the temperature for more or less randomness
-        messages=[{"role": "system", "content": "You are an expert Data Analyst."},{"role": "user", "content": user_prompt}]
-    )
-    answer = response.choices[0].message.content
+#     user_prompt= f"""
+#         <data>{data}</data>
+#         ####
+#         The data is the workers that committed the most number of breaches.
+#         Give detailed suggestions for each worker on how to reduce the breaches
+#     """
+#     # print(user_prompt)
+#     # Send user prompt to OpenAI and get a response
+#     response = openai.ChatCompletion.create(
+#         model='gpt-3.5-turbo',
+#         max_tokens=500,  # Adjust the max tokens limit as needed
+#         temperature=1,  # Adjust the temperature for more or less randomness
+#         messages=[{"role": "system", "content": "You are an expert Data Analyst."},{"role": "user", "content": user_prompt}]
+#     )
+#     answer = response.choices[0].message.content
 
-    # response = openai.Completion.create(
-    #     engine='text-davinci-003',
-    #     prompt=user_prompt,
-    #     max_tokens=500,  # Adjust the max tokens limit as needed
-    #     temperature=0.8 # Adjust the temperature for more or less randomness
-    # )
-    # answer = response.choices[0].text.strip()
+#     # response = openai.Completion.create(
+#     #     engine='text-davinci-003',
+#     #     prompt=user_prompt,
+#     #     max_tokens=500,  # Adjust the max tokens limit as needed
+#     #     temperature=0.8 # Adjust the temperature for more or less randomness
+#     # )
+#     # answer = response.choices[0].text.strip()
 
-    print(answer)            
-    return answer
+#     print(answer)            
+#     return answer
 
 # Return the breach image from db_breaches_2 according to the breach ID.
 @main.route('/api/<project_id>/get_breach_image/<string:breach_id>', methods=['GET'])
