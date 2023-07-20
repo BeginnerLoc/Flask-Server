@@ -98,7 +98,7 @@ def breaches(project_id):
 
 @main.route("/api/<project_id>/indiv_breaches")
 def get_indiv_breaches(project_id):
-    db = db_client["construction"]
+    db = db_client["construction"] 
     collection_name = "db_breaches_" + project_id
     collection = db[collection_name]
     name_filter = request.args.get("name")

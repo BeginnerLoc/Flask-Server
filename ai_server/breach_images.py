@@ -8,14 +8,14 @@ uri = "mongodb+srv://loctientran235:PUp2XTv7tkArDjJB@c290.5lmj4xh.mongodb.net/?r
 db_client = MongoClient(uri)
 
 db = db_client["construction"]
-collection2 = db["breach_images"]
+collection2 = db["db_breaches_2"]
 
 # Retrieve the documents from the collection
 cursor = collection2.find()
 
 for document in cursor:
     # Get the Base64 encoded image from the document
-    base64_image = document["image"]
+    base64_image = document["evidence_photo"]
 
     # Convert the Base64 encoded image to bytes
     image_bytes = base64.b64decode(base64_image)
