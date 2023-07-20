@@ -36,7 +36,7 @@ def most_breaches(project_id):
     
     db = db_client["construction"]
     collection_name = 'db_breaches_' + project_id
-    collection = db["db_breaches"]
+    collection = db[collection_name]
     
     # retrieve documents from the collection
     result = collection.aggregate([
@@ -98,7 +98,7 @@ def breaches(project_id):
 
 @main.route("/api/<project_id>/indiv_breaches")
 def get_indiv_breaches(project_id):
-    db = db_client["construction"]
+    db = db_client["construction"] 
     collection_name = "db_breaches_" + project_id
     collection = db[collection_name]
     name_filter = request.args.get("name")
@@ -153,13 +153,13 @@ def live_checkin(project_id):
         response = {"num_check_ins": num_check_ins}
         return jsonify(response)
     else:
-        return 0 
+        return {"num_check_ins": 0}
     
 
 @main.route("/api/<project_id>/num_hazards")
 def num_hazards(project_id):
     db = db_client["construction"]
-    collection_name = "incidents_" + project_id
+    collection_name = "hazards_" + project_id
     collection = db[collection_name]
 
     result = collection.count_documents({})
@@ -203,9 +203,47 @@ def explain_answer(data):
         engine='text-davinci-003',
         prompt=user_prompt,
         max_tokens=500,  # Adjust the max tokens limit as needed
-        temperature=0.5 # Adjust the temperature for more or less randomness
+        temperature=0.8 # Adjust the temperature for more or less randomness
     )
     answer = response.choices[0].text.strip()
+
+    print(answer)            
+    return answer
+
+
+@main.route('/ask_gpt_breach_graph', methods=['POST'])
+def ask_gpt_breach_graph():
+    data = request.json
+    answer = explain_top_breach(data)
+    
+    response = {"answer": answer}
+    return jsonify(response)
+
+def explain_top_breach(data):
+    
+    user_prompt= f"""
+        <data>{data}</data>
+        ####
+        The data is the workers that committed the most number of breaches.
+        Give detailed suggestions for each worker on how to reduce the breaches
+    """
+    # print(user_prompt)
+    # Send user prompt to OpenAI and get a response
+    response = openai.ChatCompletion.create(
+        model='gpt-3.5-turbo',
+        max_tokens=500,  # Adjust the max tokens limit as needed
+        temperature=1,  # Adjust the temperature for more or less randomness
+        messages=[{"role": "system", "content": "You are an expert Data Analyst."},{"role": "user", "content": user_prompt}]
+    )
+    answer = response.choices[0].message.content
+
+    # response = openai.Completion.create(
+    #     engine='text-davinci-003',
+    #     prompt=user_prompt,
+    #     max_tokens=500,  # Adjust the max tokens limit as needed
+    #     temperature=0.8 # Adjust the temperature for more or less randomness
+    # )
+    # answer = response.choices[0].text.strip()
 
     print(answer)            
     return answer
