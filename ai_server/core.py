@@ -14,7 +14,6 @@ from telegram import Bot
 import httpx
 import base64
 
-
 async def send_message(bot_token, chat_id, name, breach, image, location, breach_id):
     base64_image = base64.b64encode(image).decode('utf-8')  # Decode base64 to string
     
@@ -50,7 +49,6 @@ async def send_message(bot_token, chat_id, name, breach, image, location, breach
 bot_token = '5959752019:AAHZvf9E64dnXrYDPsX97ePMcoGz-t88KEw'
 chat_id  = '1031137384'
 
-
 uri = "mongodb+srv://loctientran235:PUp2XTv7tkArDjJB@c290.5lmj4xh.mongodb.net/?retryWrites=true&w=majority"
 # Create a new client and connect to the server
 db_client = MongoClient(uri)
@@ -69,7 +67,8 @@ stop_event = threading.Event()
 
 employee_data = None
 
-model2 = YOLO('ai_model\\ppe_model.pt')
+ai_model = YOLO('ai_model\\ppe_model.pt')
+
 photo_path = "UI_photos\\"
 
 imgBackground = cv2.imread(photo_path + 'background.png')
@@ -128,22 +127,162 @@ def update_employee(name):
     collection = db["workers"]
     global employee_data
     employee_data = collection.find_one({"name": name})
-
-    #print("=========================== " + employee_data["name"] + " is a " + employee_data["position"] + "================================")
        
 def search_data_thread(name):
     thread = threading.Thread(target=update_employee, args=(name,))
     thread.start()
     return thread
 
+def alert_process(breach_ppe, most_frequent_name, worker_breaches):
+    alert_message = "[ALERT]\nWorker Name:" + most_frequent_name + " is not wearing the proper PPE!\nTimestamp: " + datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    #asyncio.run(send_message(bot_token, chat_id, alert_message))
+    
+    # Check the length of the list before appending
+    initial_length = len(worker_breaches)
+
+    if breach_ppe == "no-helmet":
+        new_breach = {"Workername": most_frequent_name, "Breach": breach_ppe}
+        
+        # Check if the new breach already exists for the same workername with any breach
+        if any(breach["Workername"] == new_breach["Workername"] for breach in worker_breaches):
+            existing_breaches = {breach["Breach"] for breach in worker_breaches if breach["Workername"] == new_breach["Workername"]}
+            
+            # Check if the new breach is a duplicate for the same workername
+            if not new_breach["Breach"] in existing_breaches:
+                worker_breaches.append(new_breach)
+        else:
+            worker_breaches.append(new_breach)
+
+    if breach_ppe == "no-vest":
+        new_breach = {"Workername": most_frequent_name, "Breach": breach_ppe}
+
+        # Check if the new breach already exists for the same workername with any breach
+        if any(breach["Workername"] == new_breach["Workername"] for breach in worker_breaches):
+            existing_breaches = {breach["Breach"] for breach in worker_breaches if breach["Workername"] == new_breach["Workername"]}
+            print(existing_breaches)
+            
+            # Check if the new breach is a duplicate for the same workername
+            if not new_breach["Breach"] in existing_breaches:
+                worker_breaches.append(new_breach)
+        else:
+            worker_breaches.append(new_breach)
+
+    # Check the length of the list after appending
+    updated_length = len(worker_breaches)
+
+    # Check if a new entry has been added
+    if updated_length > initial_length:
+        print("New entry has been added to the list.")
+        print(worker_breaches[-1])
+
+        #Capture the frame with the plotting boxes for breach images
+        frame_capture = imgBackground[158:158 + 480, 52:52 + 640]
+
+        # Capture the frame as an image
+        _, buffer = cv2.imencode(".jpg", frame_capture)
+        encoded_image = base64.b64encode(buffer).decode("utf-8")
+
+        # Find the document with the highest breach ID
+        largest_breach = collection2.find_one(sort=[("breach_id", -1)])
+
+        if largest_breach is None:
+            next_breach_id = 1
+        else:
+            # Determine the next breach ID
+            next_breach_id = largest_breach["breach_id"] + 1
+
+        Location = "Entrance A"
+
+        worker_breach_name = worker_breaches[-1]["Workername"]
+        worker_breach_description = worker_breaches[-1]["Breach"]
+
+        # Save the encoded image in MongoDB
+        collection2.insert_one({
+            "datetime": datetime.now(),
+            "worker_name": worker_breach_name,
+            "description": worker_breach_description,
+            "breach_id": next_breach_id,
+            "severity": "",
+            "evidence_photo": encoded_image,
+            "location": Location,
+            "case_resolved": False
+        })
+
+        #Telegram Bot
+        # Convert the capture image to bytes
+        capture_image = frame_capture.copy()
+        retval, buffer = cv2.imencode('.jpg', capture_image)
+        image_bytes = buffer.tobytes()
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(send_message(bot_token, chat_id, worker_breach_name, worker_breach_description, image_bytes, Location, next_breach_id))
+
+def plot_bboxes(image, boxes, labels=[], colors=[], score=True, conf=None):
+    output = []
+    
+    # #Define COCO Labels
+    # if labels == []:
+    #     labels = {0: u'__background__', 1: u'helmet', 2: u'no-helmet', 3: u'no-vest', 4: u'vest'}
+    # #Define colors
+    #     colors = [(0,255,0),(0,0,255),(0,0,255),(0,255,0)]
+
+    #Define COCO Labels
+    if labels == []:
+        labels = {0: u'__background__', 1: u'helmet', 2: u'Mask', 3: u'no-helmet', 
+                  4: u'NO-Mask', 5: u'no-vest', 6: u'Person', 
+                  7: u'Safety Cone', 8: u'vest', 9: u'machinery', 10: u'vehicle'}
+    # 'Hardhat', 'Mask', 'NO-Hardhat', 'NO-Mask', 'NO-Safety Vest', 
+    # 'Person', 'Safety Cone', 'Safety Vest', 'machinery', 'vehicle'
+    #Define colors
+        colors = [(0,255,0),(0,255,0),(0,0,255),
+                  (0,0,255),(0,0,255),(123,63,0),
+                  (123,63,0),(0,255,0),(123,63,0),(123,63,0)]
+
+    label_list = []
+    exclude_labels = ['Person', 'Mask', 'NO-Mask', 'machinery', 'vehicle']
+
+    #plot each boxes
+    for box in boxes:
+        #add score in label if score=True
+        if score :
+            label = labels[int([-1])+1] + " " + str(round(100 * float(box[-2]),1)) + "%"
+        else :
+            label = labels[int(box[-1])+1]
+        #filter every box under conf threshold if conf threshold setted
+        if conf :
+            if box[-2] > conf:
+                color = colors[int(box[-1])]
+            else:
+                color = colors[int(box[-1])]
+            
+            #box label
+            if label not in label_list and label not in exclude_labels:
+                label_list.append(label)
+
+                lw = max(round(sum(image.shape) / 2 * 0.003), 2)
+                p1, p2 = (int(box[0]), int(box[1])), (int(box[2]), int(box[3]))
+                cv2.rectangle(image, p1, p2, color, thickness=lw, lineType=cv2.LINE_AA)
+                tf = max(lw - 1, 1)  # font thickness
+                w, h = cv2.getTextSize(label, 0, fontScale=lw / 3, thickness=tf)[0]  # text width, height
+                outside = p1[1] - h >= 3
+                p2 = p1[0] + w, p1[1] - h - 3 if outside else p1[1] + h + 3
+                cv2.rectangle(image, p1, p2, color, -1, cv2.LINE_AA)  # filled
+                cv2.putText(image,
+                            label, (p1[0], p1[1] - 2 if outside else p1[1] + h + 2),
+                            0,
+                            lw / 3,
+                            color=(255, 255, 255),
+                            thickness=tf,
+                            lineType=cv2.LINE_AA)
+                output.append(label)
+    return output
+
 def recognition():
-    message = 0
-    last_name = 0
     encoding_list = retrieve_encoding()
 
     checkin_recorded = set() # Initializes an empty set called checkin_recorded. This set will be used to keep track of the names of employees who have already checked in to avoid duplicates.
-    # Create a set to keep track of workers with PPE breaches
-    ppe_breach_set = set()
+   
+    # Create a worker_breaches_list to keep track of workers with PPE breaches
+    worker_breaches = []
 
     known_face_encodings = [encoding[1] for encoding in encoding_list]
     known_face_names = [encoding[0] for encoding in encoding_list]
@@ -152,7 +291,6 @@ def recognition():
     face_encodings = []
     face_names = []
     ppe_list = []
-    #process_this_frame = True
 
     while True:
         # Grab a single frame of video
@@ -160,12 +298,6 @@ def recognition():
 
         imgBackground[158:158 + 480, 52:52 + 640] = frame
         imgBackground[30:30 + 674, 800:800 + 440] = model
-
-        #Capture the frame with the plotting boxes for breach images
-        frame2 = imgBackground[158:158 + 480, 52:52 + 640]
-
-        #Only process every other frame of video to save time
-        #if process_this_frame:
 
         # Resize frame of video to 1/4 size for faster face recognition processing
         small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
@@ -178,7 +310,8 @@ def recognition():
         face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
 
         cv2.putText(imgBackground, "Authenticating...", (910, 655), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 2)
-        cv2.imshow('Video', imgBackground)
+        cv2.imshow('SAFETY CONSTRUCTION SYSTEM', imgBackground)
+
         for face_encoding in face_encodings:
             # See if the face is a match for the known face(s)
             matches = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance=0.5)
@@ -196,7 +329,6 @@ def recognition():
                 if matches[best_match_index]:
                     name = known_face_names[best_match_index]
                 
-
             face_names.append(name)
 
             #Live check in:
@@ -237,8 +369,6 @@ def recognition():
                                       {"$push": {"check_ins": {"$each": checkin_data["check_ins"]}}}, 
                                       upsert=True)
 
-        #process_this_frame = not process_this_frame
-
         #Draw Box for Face
         for (top, right, bottom, left), name in zip(face_locations, face_names):
             # Scale back up face locations since the frame we detected in was scaled to 1/4 size
@@ -254,10 +384,10 @@ def recognition():
                 font = cv2.FONT_HERSHEY_DUPLEX
                 cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
 
-        results1 = model2.predict(frame, verbose=False)
-
+        results = ai_model.predict(frame, verbose=False)
         #PPE_list - 3 Dimensions Array
-        ppe_item = plot_bboxes(imgBackground[158:158 + 480, 52:52 + 640], results1[0].boxes.data, score=False, conf=0.85)
+        ppe_item = plot_bboxes(imgBackground[158:158 + 480, 52:52 + 640], results[0].boxes.data, score=False, conf=0.85)
+
         ppe_list.append(ppe_item)
         #print(ppe_list)
         print(ppe_item)
@@ -306,100 +436,53 @@ def recognition():
                 #140 spaces
                 imgBackground[470:470 + 125, 865:865 + 105] = imgPpeList[1]
 
+                ppe_helmet = None
+                ppe_vest = None
+
                 if len(ppe_list) > 10:
                     ppe_list = ppe_list[-10:]
                     #if PPE existing more than 5 frames is True, less than 2 frames is as False
                     
-                    if sum(sublist.count("NO-Hardhat") for sublist in ppe_list) <= 3:
-                        if sum(sublist.count("Hardhat") for sublist in ppe_list) >= 3:
+                    if sum(sublist.count("no-helmet") for sublist in ppe_list) <= 3:
+                        if sum(sublist.count("helmet") for sublist in ppe_list) >= 3:
                                 imgBackground[320:320 + 130, 1030:1030 + 152] = imgStatusList[0]
-                        elif sum(sublist.count("Hardhat") for sublist in ppe_list) <= 2:
+                                ppe_helmet = True
+                        elif sum(sublist.count("helmet") for sublist in ppe_list) <= 2:
                             imgBackground[320:320 + 130, 1030:1030 + 152] = imgStatusList[1]
+                            ppe_helmet = False
                     else:
                         imgBackground[320:320 + 130, 1030:1030 + 152] = imgStatusList[1]
+                        ppe_helmet = False
                     
-                    if sum(sublist.count("NO-Safety Vest") for sublist in ppe_list) <= 3:
-                        if sum(sublist.count("Safety Vest") for sublist in ppe_list) >= 3:
+                    if sum(sublist.count("no-vest") for sublist in ppe_list) <= 3:
+                        if sum(sublist.count("vest") for sublist in ppe_list) >= 3:
                                 imgBackground[460:460 + 130, 1030:1030 + 152] = imgStatusList[2]
-                        elif sum(sublist.count("Safety Vest") for sublist in ppe_list) <= 2:
+                                ppe_vest = True
+                        elif sum(sublist.count("vest") for sublist in ppe_list) <= 2:
                             imgBackground[460:460 + 130, 1030:1030 + 152] = imgStatusList[3]
+                            ppe_vest = False
                     else:
                         imgBackground[460:460 + 130, 1030:1030 + 152] = imgStatusList[3]
+                        ppe_vest = False
 
-                    if most_frequent_name != last_name:
-                        last_name = face_names[-1]
-                    
-                        if sum(sublist.count("Safety Vest") for sublist in ppe_list)  <= 2 or sum(sublist.count("Hardhat") for sublist in ppe_list) <= 2: 
-                            message = "[ALERT]\nWorker Name:" + most_frequent_name + " is not wearing the proper PPE!\nTimestamp: " + datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-                        
-                        #asyncio.run(send_message(bot_token, chat_id, message))
-                    
-                    # imgBackground[320:320 + 130, 1030:1030 + 152] = status1
-                    # imgBackground[460:460 + 130, 1030:1030 + 152] = status2
-
-                    #if both PPE detected more than 2 frames set True.
-                    if sum(sublist.count("Hardhat") for sublist in ppe_list) > 2 and sum(sublist.count("Safety Vest") for sublist in ppe_list) > 2:
+                    #Set the Message if both PPE detected
+                    if ppe_helmet and ppe_vest:
                         imgBackground[635:635 + 35, 900:900 + 300] = clear_text
                         cv2.putText(imgBackground, "You are good to go. Stay Safe!", (905, 655), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.8, (255, 255, 255), 2)
                     else:
                         imgBackground[635:635 + 35, 900:900 + 300] = clear_text
                         cv2.putText(imgBackground, "Please wear PPE!!", (910, 655), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 2)
 
-            # NEW CODE: Capture image when there is a PPE breach
-            if name != "Unknown" and name not in ppe_breach_set:
-                ppe_breach_set.add(name)
-                if "NO-Hardhat" in ppe_item or "NO-Safety Vest" in ppe_item:
-                    # Check if both NO-Hardhat and NO-Safety Vest breaches are present
-                    if "NO-Hardhat" in ppe_item and "NO-Safety Vest" in ppe_item:
-                        # Combine the descriptions for both breaches into a single description "No PPE"
-                        breach_type = "NO-Hardhat & NO-Safety Vest"
-                    else:
-                        # Use the individual breach descriptions if only one of them is present
-                        if "NO-Hardhat" in ppe_item:
-                            breach_type = "NO-Hardhat"
-                        elif "NO-Safety Vest" in ppe_item:
-                            breach_type = "NO-Safety Vest"
-
-                    # Delay for 5 seconds
-                    time.sleep(5)
-
-                    # Capture the frame as an image
-                    _, buffer = cv2.imencode(".jpg", frame2)
-                    encoded_image = base64.b64encode(buffer).decode("utf-8")
-
-                    # Find the document with the highest breach ID
-                    largest_breach = collection2.find_one(sort=[("breach_id", -1)])
-
-                    if largest_breach is None:
-                        next_breach_id = 1
-                    else:
-                        # Determine the next breach ID
-                        next_breach_id = largest_breach["breach_id"] + 1
-
-                    Location = "Entrance A"
-
-                    # Save the encoded image in MongoDB
-                    collection2.insert_one({
-                        "datetime": datetime.now(),
-                        "worker_name": name,
-                        "description": breach_type,
-                        "breach_id": next_breach_id,
-                        "severity": "",
-                        "evidence_photo": encoded_image,
-                        "location": Location,
-                        "case_resolved": False
-                    })
-
-                    #Telegram Bot
-                    # Convert the capture image to bytes
-                    capture_image = frame.copy()
-                    retval, buffer = cv2.imencode('.jpg', capture_image)
-                    image_bytes = buffer.tobytes()
-                    loop = asyncio.get_event_loop()
-                    loop.run_until_complete(send_message(bot_token, chat_id, name, breach_type, image_bytes, Location, next_breach_id))
+                    #ALERT WHEN BREACH HAPPENED
+                    if not ppe_helmet:
+                        breach_ppe = "no-helmet"
+                        alert_process(breach_ppe, most_frequent_name, worker_breaches)
+                    if not ppe_vest:
+                        breach_ppe = "no-vest"
+                        alert_process(breach_ppe, most_frequent_name, worker_breaches)
 
         # Display the results
-        cv2.imshow('Video', imgBackground)
+        cv2.imshow('SAFETY CONSTRUCTION SYSTEM', imgBackground)
 
         # Hit 'q' on the keyboard to quit!
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -408,66 +491,11 @@ def recognition():
     # Release handle to the webcam
     video_capture.release()
     cv2.destroyAllWindows()
-        
-
-def plot_bboxes(image, boxes, labels=[], colors=[], score=True, conf=None):
-    output = []
-    #Define COCO Labels
-    if labels == []:
-        labels = {0: u'__background__', 1: u'Hardhat', 2: u'Mask', 3: u'NO-Hardhat', 
-                  4: u'NO-Mask', 5: u'NO-Safety Vest', 6: u'Person', 
-                  7: u'Safety Cone', 8: u'Safety Vest', 9: u'machinery', 10: u'vehicle'}
-    # 'Hardhat', 'Mask', 'NO-Hardhat', 'NO-Mask', 'NO-Safety Vest', 
-    # 'Person', 'Safety Cone', 'Safety Vest', 'machinery', 'vehicle'
-    #Define colors
-        colors = [(0,255,0),(0,255,0),(0,0,255),
-                  (0,0,255),(0,0,255),(123,63,0),
-                  (123,63,0),(0,255,0),(123,63,0),(123,63,0)]
-
-    label_list = []
-    exclude_labels = ['Person', 'Mask', 'NO-Mask', 'machinery', 'vehicle']
-
-    #plot each boxes
-    for box in boxes:
-        #add score in label if score=True
-        if score :
-            label = labels[int([-1])+1] + " " + str(round(100 * float(box[-2]),1)) + "%"
-        else :
-            label = labels[int(box[-1])+1]
-        #filter every box under conf threshold if conf threshold setted
-        if conf :
-            if box[-2] > conf:
-                color = colors[int(box[-1])]
-            else:
-                color = colors[int(box[-1])]
-            
-            #box label
-            if label not in exclude_labels and label not in label_list:
-                label_list.append(label)
-
-                lw = max(round(sum(image.shape) / 2 * 0.003), 2)
-                p1, p2 = (int(box[0]), int(box[1])), (int(box[2]), int(box[3]))
-                cv2.rectangle(image, p1, p2, color, thickness=lw, lineType=cv2.LINE_AA)
-                tf = max(lw - 1, 1)  # font thickness
-                w, h = cv2.getTextSize(label, 0, fontScale=lw / 3, thickness=tf)[0]  # text width, height
-                outside = p1[1] - h >= 3
-                p2 = p1[0] + w, p1[1] - h - 3 if outside else p1[1] + h + 3
-                cv2.rectangle(image, p1, p2, color, -1, cv2.LINE_AA)  # filled
-                cv2.putText(image,
-                            label, (p1[0], p1[1] - 2 if outside else p1[1] + h + 2),
-                            0,
-                            lw / 3,
-                            color=(255, 255, 255),
-                            thickness=tf,
-                            lineType=cv2.LINE_AA)
-                output.append(label)
-    return output
 
 # encoding = train_encoding("Loc.1.jpg")
 # save_encodings(encoding)
 video_capture = cv2.VideoCapture(0)
 video_capture.set(3, 640)
 video_capture.set(4, 480)
-
 
 recognition()
