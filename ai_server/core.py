@@ -28,7 +28,7 @@ async def send_message(bot_token, chat_id, name, breach, image, location, breach
                     params = {
                         "caption": (
                             f"Breach number:{breach_id} \n\n"
-                            f"{name} was not wearing {', '.join(breach)}\n"
+                            f"{name} was not wearing {breach}\n"
                             f"Location of breach: {location}\n"
                             f"Time of breach: {datetime.now()}"
                         )
@@ -46,8 +46,8 @@ async def send_message(bot_token, chat_id, name, breach, image, location, breach
                 continue 
 
 #Telegram Bot token and Chat ID (Astro's Chat ID)
-bot_token = '5959752019:AAHZvf9E64dnXrYDPsX97ePMcoGz-t88KEw'
-chat_id  = '1031137384'
+bot_token = '6060060457:AAGRyic-1HVFcUy1dSEsdLMJo0rB9Mvz0y0'
+chat_id  = '443723632'
 
 uri = "mongodb+srv://loctientran235:PUp2XTv7tkArDjJB@c290.5lmj4xh.mongodb.net/?retryWrites=true&w=majority"
 # Create a new client and connect to the server
@@ -205,7 +205,8 @@ def alert_process(breach_ppe, most_frequent_name, worker_breaches):
             "severity": "",
             "evidence_photo": encoded_image,
             "location": Location,
-            "case_resolved": False
+            "case_resolved": False,
+            "case_resolved_time": None
         })
 
         #Telegram Bot
