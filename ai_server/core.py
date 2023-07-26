@@ -206,6 +206,7 @@ def alert_process(breach_ppe, most_frequent_name, worker_breaches):
             "evidence_photo": encoded_image,
             "location": Location,
             "case_resolved": False,
+            "case_resolution": None,
             "case_resolved_time": None
         })
 
