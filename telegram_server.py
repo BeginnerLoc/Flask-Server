@@ -8,6 +8,7 @@ from PIL import Image
 from tenacity import retry, stop_after_attempt, wait_fixed
 import logging
 import time
+import datetime
 
 bot_token = '6060060457:AAGRyic-1HVFcUy1dSEsdLMJo0rB9Mvz0y0'
 
@@ -20,19 +21,23 @@ async def reply_to_message(bot: Bot, update: Update):
     chat_name = update.effective_user.first_name #Username 
     logging.info(f"User {chat_name} typed {message_text}") #Used to log the message from tele user 
 
+    # Ignore any message that does not start with '/' 
     if not message_text.startswith('/'):
         return
 
+    # Welcome Message
     if message_text == '/start':
-        response_text = "Welcome, " + chat_name + " I am SafetyManager Bot!"
+        response_text = "Welcome, " + chat_name + "\nYour chat id is " + str(chat_id) +"\nUse the /commandlist to view all commands"
 
-    # elif message_text == '/ping': #For testing connective purposes only
-    #     start_time = time.time()
-    #     await bot.send_message(chat_id=chat_id, text="Pinging...")
-    #     end_time = time.time()
-    #     ping_time = end_time - start_time
-    #     response_text = f"Pong! Bot latency: {ping_time:.2f} seconds"
+    # Connectivity test
+    elif message_text == '/ping': #For testing connective purposes only
+        start_time = time.time()
+        await bot.send_message(chat_id=chat_id, text="Pinging...")
+        end_time = time.time()
+        ping_time = end_time - start_time
+        response_text = f"Pong! Bot latency: {ping_time:.2f} seconds"
 
+    # Command List 
     elif message_text == '/commandlist':
         response_text = textwrap.dedent("""\
         Command Syntax for SafetyManager Bot \n
@@ -58,13 +63,27 @@ async def reply_to_message(bot: Bot, update: Update):
             response_text = "Last 20 Breaches:\n\n"
             for breach in breaches:
                 breach_id = breach.get("breach_id", "")
-                name = breach.get("name", "")
-                breach_type = ", ".join(breach.get("breach_type", []))
-
+                name = breach.get("worker_name", "")
+                breach_type = breach.get("description", [])
+                datetime = breach.get("datetime", "")
+                convertedTime = datetime.strftime("%d-%m-%y %H:%M:%S")
+                resolved = breach.get("case_resolved", "")
+                if resolved:
+                    resolve = "Resolved"
+                else:
+                    resolve = "Unresolved"
+                if "no-helmet" in breach_type:
+                    description = "No Helmet"
+                elif "no-vest" in breach_type:
+                    description = "No Safety Vest"
+                else:
+                    description = "None"
+                
                 response_text += textwrap.dedent(f"""\
-                Breach ID: {breach_id}
-                Name: {name}
-                Breach Type: {breach_type}
+                Breach ID: {breach_id} - {resolve}
+                Name: {name} 
+                Breach Type: {description} 
+                Time of breach: {convertedTime}\n
                 """)
 
         else:
@@ -78,13 +97,23 @@ async def reply_to_message(bot: Bot, update: Update):
             response_text = "Unresolved Breaches:\n\n"
             for breach in breaches:
                 breach_id = breach.get("breach_id", "")
-                name = breach.get("name", "")
-                breach_type = ", ".join(breach.get("breach_type", []))
+                name = breach.get("worker_name", "")
+                breach_type = breach.get("description", "")
+                datetime = breach.get("datetime", "")
+                convertedTime = datetime.strftime("%d-%m-%y %H:%M:%S")
+
+                if "no-helmet" in breach_type:
+                    description = "No Helmet"
+                elif "no-vest" in breach_type:
+                    description = "No Safety Vest"
+                else:
+                    description = "None"
 
                 response_text += textwrap.dedent(f"""\
                 Breach ID: {breach_id}
                 Name: {name}
-                Breach Type: {breach_type}\n
+                Breach Type: {description}
+                Time of breach: {convertedTime}\n
                 """)
                 breachesCount += 1
         if breachesCount == 0:
@@ -93,35 +122,41 @@ async def reply_to_message(bot: Bot, update: Update):
     #View the specific breach with the specific ID
     elif message_text.startswith('/breach '):
         # Extract the incident ID from the message text
-        incident_id = int(message_text.split(' ')[-1])
-        document = await search_mongo_id("breaches", incident_id)
+        incident_id_str = message_text.split(' ')[-1]
+        try:
+            incident_id = int(incident_id_str)
+            document = await search_mongo_id("breaches", incident_id)
+        except ValueError:
+            response_text = "The ID that you have input is invalid"
+        
         if document :
-            name = document["name"]
-            encoded_image = document["image"]
-            breach_type = document["breach_type"]
-            timestamp = document["timestamp"]
+            name = document["worker_name"]
+            encoded_image = document["evidence_photo"]
+            description = document["description"]
+            timestamp = document["datetime"]
+            cut_timestamp = str(timestamp)[:-7]
             locations = document["location"]
             breach_id = document["breach_id"]
             case_resolved = document["case_resolved"]
-
-            breach_type_text = ''
-            if 'NO-Hardhat' in breach_type and 'NO-Safety Vest' in breach_type:
-                breach_type_text = 'Not wearing hardhat and safety vest'
-            elif 'NO-Hardhat' in breach_type:
-                breach_type_text = 'Not wearing hardhat'
-            elif 'NO-Safety Vest' in breach_type:
-                breach_type_text = 'Not wearing safety vest'
+            case_resolved_time = document["case_resolved_time"]
+            case_resolution = document["case_resolution"]
+                
+            if case_resolved_time is not None:
+                formatted_time = str(case_resolved_time)
+                cut_time = formatted_time[:-7]
             else:
-                breach_type_text = ', '.join(breach_type)
+                cut_time = ""
+
 
             response_text = textwrap.dedent(f"""\
             Breach ID: {breach_id}
             Name: {name}
-            Breach Type: {breach_type_text}
-            Timestamp: {timestamp}
+            Breach Type: {description}
+            Timestamp: {cut_timestamp}
             Location: {locations}
-            Case Resolved: {case_resolved}""")
-
+            Case Resolved: {case_resolved}
+            Resolved Time: {cut_time} 
+            Case Resolution: {case_resolution} """)
 
             if encoded_image:
                 decoded_image = base64.b64decode(encoded_image)
@@ -171,11 +206,16 @@ async def reply_to_message(bot: Bot, update: Update):
                 hazard_id = hazard.get("hazard_id", "")
                 hazard_type = hazard.get("item")
                 case_resolved = hazard.get("case_resolved", "")
-
+                if case_resolved:
+                    resolve = "Resolved"
+                else:
+                    resolve = "Unresolved"
+                datetime = hazard.get("timestamp", "")
+                convertedTime = datetime.strftime("%d-%m-%y %H:%M:%S")
                 response_text += textwrap.dedent(f"""\
-                Breach ID: {hazard_id}
+                Hazard ID: {hazard_id} - {resolve}
                 Hazard Type: {hazard_type}
-                Case Resolved: {case_resolved}\n
+                Time of breach: {convertedTime}\n
                 """)
 
         else:
@@ -190,17 +230,27 @@ async def reply_to_message(bot: Bot, update: Update):
             name = document["item"]
             encoded_image = document["image"]
             timestamp = document["timestamp"]
+            cut_timestamp = str(timestamp)[:-7]
             locations = document["location"]
             hazard_id = document["hazard_id"]
             case_resolved = document["case_resolved"]
+            case_resolved_time = document["case_resolved_time"]
+            case_resolution = document["case_resolution"]
+                
+            if case_resolved_time is not None:
+                formatted_time = str(case_resolved_time)
+                cut_time = formatted_time[:-7]
+            else:
+                cut_time = ""
 
             response_text = textwrap.dedent(f"""\
             Hazard ID: {hazard_id}
             Hazard Type: {name}
-            Timestamp: {timestamp}
+            Timestamp: {cut_timestamp}
             Location: {locations}
-            Case Resolved: {case_resolved}""")
-
+            Case Resolved: {case_resolved}
+            Resolved Time: {case_resolved_time}
+            Case Resolution: {case_resolution} """)
 
             if encoded_image:
                 decoded_image = base64.b64decode(encoded_image)
@@ -233,9 +283,9 @@ async def reply_to_message(bot: Bot, update: Update):
             if document :
                 resolved = await changeResolved("hazards", hazard_id, action)
                 if resolved: 
-                    response_text = "Incident id " + str(hazard_id) + " has been marked as resolved with the action of '" + action +"'"
+                    response_text = "Hazard id " + str(hazard_id) + " has been marked as resolved with the action of '" + action +"'"
                 else:
-                    response_text = "Incident id: " + str(hazard_id) + " could not have been resolved"
+                    response_text = "Hazard id: " + str(hazard_id) + " could not have been resolved"
             else:
                 response_text = "The Hazard id you have entered is invalid or not in the Database!"
         else:
@@ -259,7 +309,7 @@ async def reply_to_message(bot: Bot, update: Update):
                 """)
                 hazardCount += 1
         if hazardCount == 0:
-            response_text = "Congrats! There is no unresolved cases for now!."
+            response_text = "Congrats! There is no unresolved cases for now!"
 
     # If command is invalid, tell user command is not valid
     else:
@@ -324,16 +374,19 @@ async def changeResolved(type, id, reason):
     else:
         return False  # Return False if type is invalid
     try:
+        timeNow = datetime.datetime.now()
         if type == "breaches":
             # Update the document with the provided id
             collection.update_one(
                 {"breach_id": id},
-                {"$set": {"case_resolved": True, "case_resolution": reason}}
+                {"$set": {"case_resolved": True, "case_resolution": reason, "case_resolved_time": timeNow},
+                 }
             )
         elif type == "hazards":
             collection.update_one(
                 {"hazard_id": id},
-                {"$set": {"case_resolved": True, "case_resolution": reason}}
+                {"$set": {"case_resolved": True, "case_resolution": reason, "case_resolved_time": timeNow},
+                }
             )
         client.close()
         return True  # Return True if the update is successful
