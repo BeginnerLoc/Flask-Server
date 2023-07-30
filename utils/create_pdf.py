@@ -26,7 +26,7 @@ def download_pdf():
         collection = db["hazards" + str("_"+project_id)]
         print(collection)
     elif report_type == "breaches":
-        collection = db["db_breaches" + str("_"+project_id)]
+        collection = db["db_breaches_2" ] #+ str("_"+project_id)
         print(collection)
         
     # Define the query based on the report type and days
@@ -69,6 +69,8 @@ def download_pdf():
     page_number = 2
 
     hazard_types_count = {}
+    # hazard_counts_to_display = [] 
+    breach_types_count = {}
     resolved_cases = 0
     unresolved_cases = 0
 
@@ -77,7 +79,6 @@ def download_pdf():
         pdf.drawCentredString(4.25 * inch, 10.75 * inch, "Safety Report -- Page {}".format(page_number-1)) # Change the y position to 10.75 inches
         y = top_margin
 
-        
 
         if "item" in d:
             hazard_type = d["item"]
@@ -89,41 +90,84 @@ def download_pdf():
             else:
                 unresolved_cases += 1
 
+        if "description" in d:
+            breach_type = d["description"]
+            breach_types_count[breach_type] = breach_types_count.get(breach_type, 0 ) + 1
+            resolved = str(d.get("case_resolved"))
+            print("Resolved?: " + resolved)
+            if resolved == "True":
+                resolved_cases += 1
+            else:
+                unresolved_cases += 1
 
         print("Data from MongoDB collection:")
-        for key, value in hazard_types_count.items():
-            print(f"{key}: {value}")
 
+        # if "item" in d:
+        #     for key, value in hazard_types_count.items():
+        #         print(f"{key}: {value}")
+        # else:
+        #     for key, value in breach_types_count.items():
+        #         print(f"{key}: {value}")
 
         # Generate the pie chart
         pie_labels_count = list(hazard_types_count.keys())
         pie_sizes_count = list(hazard_types_count.values())
+        pie_labels_count_breach = list(breach_types_count.keys())
+        pie_sizes_count_breach = list(breach_types_count.values())
 
         # past_week_date = datetime.today() - timedelta(days=7)
 
         if page_number == 2: 
             if report_type == "incidents":
-                pdf.drawString(left_margin, y, "Number of hazards within the past {} days: {}".format(days, value))
-
+                count = collection.estimated_document_count()
+                pdf.drawString(left_margin, y, "Number of hazards within the past {} days: {}".format(days, count))
 
                 create_pie_chart(pie_labels_count, pie_sizes_count, "pie_chart.png", width=5, height=5)
                 pie_chart_img = ImageReader("pie_chart.png")
                 pdf.drawImage(pie_chart_img, 0.3 * inch, 6 * inch, width=3.75 * inch, height=3.75 * inch)
                 pdf.setFont("Helvetica-Bold", 12) 
-                pdf.drawString(1.5 * inch, 6.2 * inch, "Type of Hazard")  
 
+                pdf.drawString(1.5 * inch, 6.2 * inch, "Type of Hazard (%)")
+
+                # # Draw the pie_labels_count with their counts without the black box
+                # y_position = 6.0 * inch
+                # pdf.setFont("Helvetica", 12)
+                # for label in pie_labels_count:
+                #     count = hazard_types_count[label]
+                #     text = f"{label} - {count}"
+                #     hazard_counts_to_display.append(text)
+                #     pdf.drawString(1.5 * inch, y_position, text)
+                #     y_position -= 0.2 * inch
 
                 create_pie_chart(["Resolved Cases", "Unresolved Cases"], [resolved_cases, unresolved_cases], "pie_chart_resolved.png", width=5, height=5)
                 pie_chart_img = ImageReader("pie_chart_resolved.png")
                 pdf.drawImage(pie_chart_img, 4.3 * inch, 6 * inch, width=3.75 * inch, height=3.75 * inch)
                 pdf.setFont("Helvetica-Bold", 12) 
-                pdf.drawString(5.6 * inch, 6.2 * inch, "Resolved Cases")  
+                pdf.drawString(5.6 * inch, 6.2 * inch, "Resolved Cases (%)")  
+  
 
+                # # Draw the hazard counts after all the data has been processed
+                # y_position = 6.0 * inch
+                # for hazard_count_text in hazard_counts_to_display:
+                #     pdf.drawString(1.5 * inch, y_position, hazard_count_text)
+                #     y_position -= 0.2 * inch
 
             elif report_type == "breaches":
                 past_week_date = datetime.today() - timedelta(days=7)
                 past_week_count = collection.count_documents({"datetime": {"$gte": past_week_date}})
-                pdf.drawString(left_margin, y, "Number of breaches within the past 7 days: {}".format(past_week_count))
+                pdf.drawString(left_margin, y, "Number of breaches within the past {} days: {}".format(days, count))
+
+                create_pie_chart(pie_labels_count_breach, pie_sizes_count_breach, "pie_chart.png", width=5, height=5)
+                pie_chart_img = ImageReader("pie_chart.png")
+                pdf.drawImage(pie_chart_img, 0.3 * inch, 6 * inch, width=3.75 * inch, height=3.75 * inch)
+                pdf.setFont("Helvetica-Bold", 12) 
+                pdf.drawString(1.5 * inch, 6.2 * inch, "Type of Breaches (%)")
+
+                create_pie_chart(["Resolved Cases", "Unresolved Cases"], [resolved_cases, unresolved_cases], "pie_chart_resolved.png", width=5, height=5)
+                pie_chart_img = ImageReader("pie_chart_resolved.png")
+                pdf.drawImage(pie_chart_img, 4.3 * inch, 6 * inch, width=3.75 * inch, height=3.75 * inch)
+                pdf.setFont("Helvetica-Bold", 12) 
+                pdf.drawString(5.6 * inch, 6.2 * inch, "Resolved Breaches (%)")  
         
 
     # Draw page number at the bottom of the last page
