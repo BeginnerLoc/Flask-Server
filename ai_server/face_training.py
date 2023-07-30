@@ -3,6 +3,8 @@ import cv2
 import numpy as np
 from pymongo.mongo_client import MongoClient
 from ultralytics import YOLO
+import imgaug.augmenters as iaa
+import matplotlib.pyplot as plt
 
 import os
 
@@ -10,7 +12,7 @@ uri = "mongodb+srv://loctientran235:PUp2XTv7tkArDjJB@c290.5lmj4xh.mongodb.net/?r
 # Create a new client and connect to the server
 db_client = MongoClient(uri)
 db = db_client["construction"]
-collection = db["encodings"]
+collection = db["encodings_test3"]
 # Send a ping to confirm a successful connection
 try:
     db_client.admin.command('ping')
@@ -39,6 +41,12 @@ def get_encodings_from_folder(folder_path):
     # Initialize an empty list to store encodings
     encodings_list = []
 
+    # Define image augmentation sequence
+    augmentation = iaa.Sequential([
+        # iaa.Resize({"height": 300, "width": 300}),  # Resize images to a fixed size
+        iaa.Multiply((1.1))  # Multiply pixel values to increase brightness
+    ])
+
     # Loop through each file in the folder
     for filename in os.listdir(folder_path):
         # Check if the file is an image
@@ -47,8 +55,19 @@ def get_encodings_from_folder(folder_path):
             image_path = os.path.join(folder_path, filename)
             image = cv2.imread(image_path)
 
-            # Encode the image and save the encoding to the list
-            encoding = face_recognition.face_encodings(image)[0]
+            # Apply augmentation to the image
+            augmented_image = augmentation.augment_image(image)
+
+            # # Display the original and augmented images
+            # fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+            # axes[0].imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+            # axes[0].set_title("Original Image")
+            # axes[1].imshow(cv2.cvtColor(augmented_image, cv2.COLOR_BGR2RGB))
+            # axes[1].set_title("Augmented Image")
+            # plt.show()
+
+            # Encode the augmented image and save the encoding to the list
+            encoding = face_recognition.face_encodings(augmented_image)[0]
             name = filename.split(".")[0]
             object_encoding = encoding.astype(object)
             result = np.insert(object_encoding, 0, name)
@@ -110,7 +129,7 @@ def recognition():
             face_names = []
             for face_encoding in face_encodings:
                 # See if the face is a match for the known face(s)
-                matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+                matches = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance=0.4)
                 name = "Unknown"
 
                 # If a match was found in known_face_encodings, just use the first one.
@@ -219,4 +238,4 @@ def plot_bboxes(image, boxes, labels=[], colors=[], score=True, conf=None):
 # save_encodings(encoding)
 
 video_capture = cv2.VideoCapture(0)
-recognition()
+recognition() 
