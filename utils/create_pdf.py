@@ -3,6 +3,11 @@ import pymongo
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
+from reportlab.lib.utils import ImageReader
+from reportlab.graphics.charts.textlabels import Label
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
 from datetime import datetime, timedelta
 from io import BytesIO
 
@@ -18,7 +23,7 @@ def download_pdf():
     db = client["construction"]
     
     if report_type == "incidents":
-        collection = db["Incidents" + str("_"+project_id)]
+        collection = db["hazards" + str("_"+project_id)]
         print(collection)
     elif report_type == "breaches":
         collection = db["db_breaches" + str("_"+project_id)]
@@ -61,76 +66,65 @@ def download_pdf():
     left_margin = 0.5 * inch
     top_margin = 10 * inch # Change the top margin to 10 inches
     bottom_margin = 0.5 * inch
-    line_height = 14
-    max_entries_per_page = 20
     page_number = 2
 
-    # Write the data to the PDF report
-    y = top_margin
-    entry_count = 0
-
-
+    hazard_types_count = {}
+    resolved_cases = 0
+    unresolved_cases = 0
 
     for d in data:
-        if entry_count == 0:
-            pdf.setFont("Helvetica-Bold", 14)
-            pdf.drawCentredString(4.25 * inch, 10.75 * inch, "Safety Report -- Page {}".format(page_number-1)) # Change the y position to 10.75 inches
-            y = top_margin
-            
-            past_week_date = datetime.today() - timedelta(days=7)
+        pdf.setFont("Helvetica-Bold", 14)
+        pdf.drawCentredString(4.25 * inch, 10.75 * inch, "Safety Report -- Page {}".format(page_number-1)) # Change the y position to 10.75 inches
+        y = top_margin
 
-            print("Report type: " + report_type)
-            if page_number == 2: # Display "Number of incidents within the past 7 days" only on the second page
-                if report_type == "incidents":
-                    past_week_count = collection.count_documents({"timestamp": {"$gte": past_week_date}})
-                    pdf.drawString(left_margin, y, "Number of incidents within the past 7 days: {}".format(past_week_count))
+        
 
-                elif report_type == "breaches":
-                    past_week_date = datetime.today() - timedelta(days=7)
-                    past_week_count = collection.count_documents({"datetime": {"$gte": past_week_date}})
-                    pdf.drawString(left_margin, y, "Number of breaches within the past 7 days: {}".format(past_week_count))
+        if "item" in d:
+            hazard_type = d["item"]
+            hazard_types_count[hazard_type] = hazard_types_count.get(hazard_type, 0) + 1
+            resolved = str(d.get("case_resolved"))
+            print("Resolved?: " + resolved)
+            if resolved == "True":
+                resolved_cases += 1
+            else:
+                unresolved_cases += 1
 
-                y -= line_height + 50
 
-            
-            pdf.setFont("Helvetica", 12)
+        print("Data from MongoDB collection:")
+        for key, value in hazard_types_count.items():
+            print(f"{key}: {value}")
+
+
+        # Generate the pie chart
+        pie_labels_count = list(hazard_types_count.keys())
+        pie_sizes_count = list(hazard_types_count.values())
+
+        # past_week_date = datetime.today() - timedelta(days=7)
+
+        if page_number == 2: 
             if report_type == "incidents":
-                pdf.drawString(left_margin, y, "Incident Type")
-                pdf.drawString(left_margin + 2.5 * inch, y, "Timestamp")
+                pdf.drawString(left_margin, y, "Number of hazards within the past {} days: {}".format(days, value))
+
+
+                create_pie_chart(pie_labels_count, pie_sizes_count, "pie_chart.png", width=5, height=5)
+                pie_chart_img = ImageReader("pie_chart.png")
+                pdf.drawImage(pie_chart_img, 0.3 * inch, 6 * inch, width=3.75 * inch, height=3.75 * inch)
+                pdf.setFont("Helvetica-Bold", 12) 
+                pdf.drawString(1.5 * inch, 6.2 * inch, "Type of Hazard")  
+
+
+                create_pie_chart(["Resolved Cases", "Unresolved Cases"], [resolved_cases, unresolved_cases], "pie_chart_resolved.png", width=5, height=5)
+                pie_chart_img = ImageReader("pie_chart_resolved.png")
+                pdf.drawImage(pie_chart_img, 4.3 * inch, 6 * inch, width=3.75 * inch, height=3.75 * inch)
+                pdf.setFont("Helvetica-Bold", 12) 
+                pdf.drawString(5.6 * inch, 6.2 * inch, "Resolved Cases")  
+
+
             elif report_type == "breaches":
-                pdf.drawString(left_margin, y, "Breach Number")
-                pdf.drawString(left_margin + 1.5 * inch, y, "Timestamp")
-                pdf.drawString(left_margin + 4 * inch, y, "Worker Name")
-                pdf.drawString(left_margin + 6 * inch, y, "Description")
-            y -= line_height
+                past_week_date = datetime.today() - timedelta(days=7)
+                past_week_count = collection.count_documents({"datetime": {"$gte": past_week_date}})
+                pdf.drawString(left_margin, y, "Number of breaches within the past 7 days: {}".format(past_week_count))
         
-
-        if report_type == "incidents":
-            pdf.setFont("Helvetica-Bold", 12)
-            pdf.drawString(left_margin, y, "{}".format(d["incident_type"]))
-            pdf.setFont("Helvetica", 12)
-            pdf.drawString(left_margin + 2.5 * inch, y, "{}".format(d["timestamp"]))
-
-        elif report_type == "breaches":
-            pdf.setFont("Helvetica-Bold", 12)
-            pdf.drawString(left_margin, y, "{}".format(d["breach_number"]))
-            pdf.drawString(left_margin + 1.5 * inch, y, "{}".format(d["datetime"]))
-            pdf.drawString(left_margin + 4 * inch, y, "{}".format(d["worker_name"]))
-            pdf.drawString(left_margin + 6 * inch, y, "{}".format(d["description"]))
-        
-        y -= line_height
-        entry_count += 1
-        
-        if entry_count == max_entries_per_page:
-            entry_count = 0
-            # Draw page number at the bottom of each page
-            pdf.setFont("Helvetica", 12)
-            pdf.drawCentredString(4.25 * inch, bottom_margin, "Safety Report -- Page {}".format(page_number-1))
-            pdf.showPage()
-            page_number += 1
-
-
-
 
     # Draw page number at the bottom of the last page
     pdf.setFont("Helvetica", 12)
@@ -157,3 +151,16 @@ def download_pdf():
     pdf_stream.close()
 
     return response
+
+def create_pie_chart(labels, sizes, filename, width=5, height=5):
+    print("Pie Chart Data:")
+    for label, size in zip(labels, sizes):
+        print(f"{label}: {size}")
+
+    plt.figure(figsize=(width, height))
+    wedges, labels, autopct = plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90)
+    plt.axis('equal')
+    for label in labels:
+        label.set_fontsize(5)
+    plt.savefig(filename)
+    plt.close()
