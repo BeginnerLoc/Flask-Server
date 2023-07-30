@@ -53,7 +53,7 @@ uri = "mongodb+srv://loctientran235:PUp2XTv7tkArDjJB@c290.5lmj4xh.mongodb.net/?r
 # Create a new client and connect to the server
 db_client = MongoClient(uri)
 db = db_client["construction"]
-collection = db["encodings_test2"]
+collection = db["encodings_test3"]
 collection2 = db["db_breaches_2"]
 
 # Send a ping to confirm a successful connection
