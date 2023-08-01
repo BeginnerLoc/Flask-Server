@@ -34,7 +34,7 @@ async def send_message(bot_token, chat_id, item, image, location, id):
                 continue 
 
 # Initialise model
-model = YOLO('./ai_server/ai_model/best.pt')
+model = YOLO(r'D:\Workspace\Flask-Server\ai_server\ai_model\tools_model_updated.pt')
 model.model.conf_thres = 0.6  # Set detection threshold
 
 # Initialise the webcam capture device of index 0 and set its resolution to 640x480
