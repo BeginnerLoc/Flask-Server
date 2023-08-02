@@ -35,7 +35,7 @@ async def send_message(bot_token, chat_id, item, image, location, id):
 
 # Initialise model
 model = YOLO(r'D:\Workspace\Flask-Server\ai_server\ai_model\tools_model_updated.pt')
-model.model.conf_thres = 0.6  # Set detection threshold
+model.model.conf_thres = 0.4  # Set detection threshold
 
 # Initialise the webcam capture device of index 0 and set its resolution to 640x480
 cap = cv2.VideoCapture(0)
@@ -137,8 +137,8 @@ async def main():
                                 
                                 #If object is detected in ROI > 10 seconds, it will check if there is any mongodb entries posted in the last 10 mins
                                 print(datetime.now() - capture_time)
-                                if elapsed_time.total_seconds() > 3 and (datetime.now() - capture_time) > timedelta(minutes=10):
-                                    print("True, More than 10s!")
+                                if elapsed_time.total_seconds() > 10 and (datetime.now() - capture_time) > timedelta(minutes=10):
+                                    print("More than 10s!")
                                     capture_image = frame.copy()
                                     capture_time = datetime.now()
                                     item_name = model.names[int(c)]
