@@ -53,7 +53,7 @@ uri = "mongodb+srv://loctientran235:PUp2XTv7tkArDjJB@c290.5lmj4xh.mongodb.net/?r
 # Create a new client and connect to the server
 db_client = MongoClient(uri)
 db = db_client["construction"]
-collection = db["encodings_test3"]
+collection = db["encodings_test4"]
 collection2 = db["db_breaches_2"]
 
 # Send a ping to confirm a successful connection
@@ -140,32 +140,22 @@ def alert_process(breach_ppe, most_frequent_name, worker_breaches):
     # Check the length of the list before appending
     initial_length = len(worker_breaches)
 
-    if breach_ppe == "no-helmet":
-        new_breach = {"Workername": most_frequent_name, "Breach": breach_ppe}
+    new_breach = {"Workername": most_frequent_name, "Breach": breach_ppe}
+
+    # # Check if the new breach already exists for the same workername with any breach
+    # if any(breach["Workername"] == new_breach["Workername"] for breach in worker_breaches):
+    #     existing_breaches = {breach["Breach"] for breach in worker_breaches if breach["Workername"] == new_breach["Workername"]}
+    #     print(existing_breaches)
         
-        # Check if the new breach already exists for the same workername with any breach
-        if any(breach["Workername"] == new_breach["Workername"] for breach in worker_breaches):
-            existing_breaches = {breach["Breach"] for breach in worker_breaches if breach["Workername"] == new_breach["Workername"]}
-            
-            # Check if the new breach is a duplicate for the same workername
-            if not new_breach["Breach"] in existing_breaches:
-                worker_breaches.append(new_breach)
-        else:
-            worker_breaches.append(new_breach)
+    #     # Check if the new breach is a duplicate for the same workername
+    #     if not new_breach["Breach"] in existing_breaches:
+    #         worker_breaches.append(new_breach)
+    # else:
+    #     worker_breaches.append(new_breach)
 
-    if breach_ppe == "no-vest":
-        new_breach = {"Workername": most_frequent_name, "Breach": breach_ppe}
-
-        # Check if the new breach already exists for the same workername with any breach
-        if any(breach["Workername"] == new_breach["Workername"] for breach in worker_breaches):
-            existing_breaches = {breach["Breach"] for breach in worker_breaches if breach["Workername"] == new_breach["Workername"]}
-            print(existing_breaches)
-            
-            # Check if the new breach is a duplicate for the same workername
-            if not new_breach["Breach"] in existing_breaches:
-                worker_breaches.append(new_breach)
-        else:
-            worker_breaches.append(new_breach)
+    # Check if workername already exists
+    if not any(breach["Workername"] == new_breach["Workername"] for breach in worker_breaches):
+        worker_breaches.append(new_breach)
 
     # Check the length of the list after appending
     updated_length = len(worker_breaches)
@@ -302,7 +292,7 @@ def recognition():
         imgBackground[30:30 + 674, 800:800 + 440] = model
 
         # Resize frame of video to 1/4 size for faster face recognition processing
-        small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
+        small_frame = cv2.resize(imgBackground[158:158 + 480, 52:52 + 640], (0, 0), fx=0.25, fy=0.25)
 
         # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
         rgb_small_frame = small_frame[:, :, ::-1]
@@ -371,6 +361,10 @@ def recognition():
                                       {"$push": {"check_ins": {"$each": checkin_data["check_ins"]}}}, 
                                       upsert=True)
 
+        results = ai_model.predict(frame, verbose=False)
+        #PPE_list - 3 Dimensions Array
+        ppe_item = plot_bboxes(imgBackground[158:158 + 480, 52:52 + 640], results[0].boxes.data, score=False, conf=0.85)
+
         #Draw Box for Face
         for (top, right, bottom, left), name in zip(face_locations, face_names):
             # Scale back up face locations since the frame we detected in was scaled to 1/4 size
@@ -381,14 +375,9 @@ def recognition():
 
             # Draw a box around the face
             if name != "Unknown":
-                cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
-                cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 255, 0), cv2.FILLED)
-                font = cv2.FONT_HERSHEY_DUPLEX
-                cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
-
-        results = ai_model.predict(frame, verbose=False)
-        #PPE_list - 3 Dimensions Array
-        ppe_item = plot_bboxes(imgBackground[158:158 + 480, 52:52 + 640], results[0].boxes.data, score=False, conf=0.85)
+                cv2.rectangle(imgBackground[158:158 + 480, 52:52 + 640], (left, top), (right, bottom), (0, 255, 0), 2)
+                cv2.rectangle(imgBackground[158:158 + 480, 52:52 + 640], (left, bottom - 35), (right, bottom), (0, 255, 0), cv2.FILLED)
+                cv2.putText(imgBackground[158:158 + 480, 52:52 + 640], name, (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255), 1)
 
         ppe_list.append(ppe_item)
         #print(ppe_list)
@@ -421,7 +410,6 @@ def recognition():
 
                 if most_frequent_name == "Astro":
                     imgBackground[50:50 + 108, 1105:1105 + 108] = imgAvaList[0]
-                    
                     cv2.putText(imgBackground, role, (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 1)
                     
                 elif most_frequent_name == "Chris":
@@ -479,11 +467,15 @@ def recognition():
                         cv2.putText(imgBackground, "Please wear PPE!!", (910, 655), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 2)
 
                     #ALERT WHEN BREACH HAPPENED
-                    if not ppe_helmet:
-                        breach_ppe = "no-helmet"
-                        alert_process(breach_ppe, most_frequent_name, worker_breaches)
-                    if not ppe_vest:
-                        breach_ppe = "no-vest"
+                    if not ppe_helmet and not ppe_vest:
+                        breach_ppe = "no-helmet and no-vest"
+                    else:
+                        if not ppe_helmet:
+                            breach_ppe = "no-helmet"
+                        if not ppe_vest:
+                            breach_ppe = "no-vest"
+
+                    if breach_ppe != None:
                         alert_process(breach_ppe, most_frequent_name, worker_breaches)
 
         # Display the results
