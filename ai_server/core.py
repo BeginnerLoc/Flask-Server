@@ -53,7 +53,7 @@ uri = "mongodb+srv://loctientran235:PUp2XTv7tkArDjJB@c290.5lmj4xh.mongodb.net/?r
 # Create a new client and connect to the server
 db_client = MongoClient(uri)
 db = db_client["construction"]
-collection = db["encodings_test4"]
+collection = db["encodings_test3"]
 collection2 = db["db_breaches_2"]
 
 # Send a ping to confirm a successful connection
@@ -74,6 +74,7 @@ photo_path = "UI_photos\\"
 imgBackground = cv2.imread(photo_path + 'background.png')
 model = cv2.imread(photo_path + 'pageA.png')
 clear_text = cv2.imread(photo_path + 'clear.png')
+clear_text2 = cv2.imread(photo_path + 'clear2.png')
 
 #statusList
 folderStatusPath = photo_path + 'status'
@@ -268,13 +269,98 @@ def plot_bboxes(image, boxes, labels=[], colors=[], score=True, conf=None):
                 output.append(label)
     return output
 
-def recognition():
+def facial_recognition(known_face_encodings, known_face_names, face_names, checkin_recorded):
+    # Resize frame of video to 1/4 size for faster face recognition processing
+    small_frame = cv2.resize(imgBackground[158:158 + 480, 52:52 + 640], (0, 0), fx=0.25, fy=0.25)
+
+    # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
+    rgb_small_frame = small_frame[:, :, ::-1]
+    
+    # Find all the faces and face encodings in the current frame of video
+    face_locations = face_recognition.face_locations(rgb_small_frame)
+    face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
+
+    for face_encoding in face_encodings:
+        # See if the face is a match for the known face(s)
+        matches = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance=0.5)
+        name = "Unknown"
+
+        # If a match was found in known_face_encodings, just use the first one.
+        if True in matches:
+            first_match_index = matches.index(True)
+            name = known_face_names[first_match_index]
+
+        else:
+            # Or instead, use the known face with the smallest distance to the new face
+            face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
+            best_match_index = np.argmin(face_distances)
+            if matches[best_match_index]:
+                name = known_face_names[best_match_index]
+            
+        face_names.append(name)
+
+        #Live check in:
+
+        # Create a single document for each day to store all the worker check-ins
+        checkin_data = {
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "check_ins": []
+        }
+
+        # Check if the detected face is a known employee and insert check-in record
+        if name != "Unknown" and name not in checkin_recorded:
+            collection = db["workers"]
+            worker_data = collection.find_one({"name": name})
+            if worker_data is not None:
+                position = worker_data["position"]
+                worker_id = worker_data["worker_id"]
+                supervisor = worker_data["supervisor"]
+            else:
+                position = None
+                worker_id = None
+
+            # collection = db["checkin_1"]
+            collection = db["checkin_2"] 
+
+            checkin_entry = {
+                "name": name,
+                "worker_id": worker_id,
+                "position": position,
+                "supervisor": supervisor,
+                "time": datetime.now()
+            }
+            checkin_data["check_ins"].append(checkin_entry)
+            checkin_recorded.add(name)
+
+            # Insert the check-in data for the day into the MongoDB collection
+            collection.update_one({"date": checkin_data["date"]}, 
+                                    {"$push": {"check_ins": {"$each": checkin_data["check_ins"]}}}, 
+                                    upsert=True)
+            
+    #Draw Box for Face
+    # for (top, right, bottom, left), name in zip(face_locations, face_names):
+    #     # Scale back up face locations since the frame we detected in was scaled to 1/4 size
+    #     top *= 4
+    #     right *= 4
+    #     bottom *= 4
+    #     left *= 4
+
+    #     # Draw a box around the face
+    #     if name != "Unknown":
+    #         cv2.rectangle(imgBackground[158:158 + 480, 52:52 + 640], (left, top), (right, bottom), (0, 255, 0), 2)
+    #         cv2.rectangle(imgBackground[158:158 + 480, 52:52 + 640], (left, bottom - 35), (right, bottom), (0, 255, 0), cv2.FILLED)
+    #         cv2.putText(imgBackground[158:158 + 480, 52:52 + 640], name, (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255), 1)
+
+def main():
     encoding_list = retrieve_encoding()
 
     checkin_recorded = set() # Initializes an empty set called checkin_recorded. This set will be used to keep track of the names of employees who have already checked in to avoid duplicates.
-   
+    
     # Create a worker_breaches_list to keep track of workers with PPE breaches
     worker_breaches = []
+
+    item_number = 0
+    counter = 0
 
     known_face_encodings = [encoding[1] for encoding in encoding_list]
     known_face_names = [encoding[0] for encoding in encoding_list]
@@ -291,106 +377,30 @@ def recognition():
         imgBackground[158:158 + 480, 52:52 + 640] = frame
         imgBackground[30:30 + 674, 800:800 + 440] = model
 
-        # Resize frame of video to 1/4 size for faster face recognition processing
-        small_frame = cv2.resize(imgBackground[158:158 + 480, 52:52 + 640], (0, 0), fx=0.25, fy=0.25)
-
-        # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
-        rgb_small_frame = small_frame[:, :, ::-1]
-        
-        # Find all the faces and face encodings in the current frame of video
-        face_locations = face_recognition.face_locations(rgb_small_frame)
-        face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
+        facial_recognition(known_face_encodings, known_face_names, face_names, checkin_recorded)
 
         cv2.putText(imgBackground, "Authenticating...", (910, 655), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 2)
+
         cv2.imshow('SAFETY CONSTRUCTION SYSTEM', imgBackground)
-
-        for face_encoding in face_encodings:
-            # See if the face is a match for the known face(s)
-            matches = face_recognition.compare_faces(known_face_encodings, face_encoding, tolerance=0.5)
-            name = "Unknown"
-
-            # If a match was found in known_face_encodings, just use the first one.
-            if True in matches:
-                first_match_index = matches.index(True)
-                name = known_face_names[first_match_index]
-
-            else:
-                # Or instead, use the known face with the smallest distance to the new face
-                face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
-                best_match_index = np.argmin(face_distances)
-                if matches[best_match_index]:
-                    name = known_face_names[best_match_index]
-                
-            face_names.append(name)
-
-            #Live check in:
-
-            # Create a single document for each day to store all the worker check-ins
-            checkin_data = {
-                "date": datetime.now().strftime("%Y-%m-%d"),
-                "check_ins": []
-            }
-
-            # Check if the detected face is a known employee and insert check-in record
-            if name != "Unknown" and name not in checkin_recorded:
-                collection = db["workers"]
-                worker_data = collection.find_one({"name": name})
-                if worker_data is not None:
-                    position = worker_data["position"]
-                    worker_id = worker_data["worker_id"]
-                    supervisor = worker_data["supervisor"]
-                else:
-                    position = None
-                    worker_id = None
-
-                # collection = db["checkin_1"]
-                collection = db["checkin_2"] 
-
-                checkin_entry = {
-                    "name": name,
-                    "worker_id": worker_id,
-                    "position": position,
-                    "supervisor": supervisor,
-                    "time": datetime.now()
-                }
-                checkin_data["check_ins"].append(checkin_entry)
-                checkin_recorded.add(name)
-
-                # Insert the check-in data for the day into the MongoDB collection
-                collection.update_one({"date": checkin_data["date"]}, 
-                                      {"$push": {"check_ins": {"$each": checkin_data["check_ins"]}}}, 
-                                      upsert=True)
 
         results = ai_model.predict(frame, verbose=False)
         #PPE_list - 3 Dimensions Array
         ppe_item = plot_bboxes(imgBackground[158:158 + 480, 52:52 + 640], results[0].boxes.data, score=False, conf=0.85)
 
-        #Draw Box for Face
-        for (top, right, bottom, left), name in zip(face_locations, face_names):
-            # Scale back up face locations since the frame we detected in was scaled to 1/4 size
-            top *= 4
-            right *= 4
-            bottom *= 4
-            left *= 4
-
-            # Draw a box around the face
-            if name != "Unknown":
-                cv2.rectangle(imgBackground[158:158 + 480, 52:52 + 640], (left, top), (right, bottom), (0, 255, 0), 2)
-                cv2.rectangle(imgBackground[158:158 + 480, 52:52 + 640], (left, bottom - 35), (right, bottom), (0, 255, 0), cv2.FILLED)
-                cv2.putText(imgBackground[158:158 + 480, 52:52 + 640], name, (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255), 1)
-
         ppe_list.append(ppe_item)
         #print(ppe_list)
         print(ppe_item)
-        print(face_names)
+        print(face_names[-10:])
 
         #Find the most face detect
         if len(face_names) > 10:
-            face_names = face_names[-15:]
-            most_frequent_name = Counter(face_names).most_common(1)[0][0]
+            #face_names = face_names[-15:]
+            
+            most_frequent_name = Counter(face_names[:10]).most_common(1)[0][0]
+            print("Session Holder: " + most_frequent_name)
 
             if most_frequent_name != "Unknown" and most_frequent_name != None:
-                if employee_data == None or employee_data['name'] != most_frequent_name:        
+                if employee_data == None or employee_data['name'] != most_frequent_name:      
                     thread = search_data_thread(most_frequent_name)
                     # Set the stop_event object to stop the thread
                     stop_event.set()
@@ -466,6 +476,19 @@ def recognition():
                         imgBackground[635:635 + 35, 900:900 + 300] = clear_text
                         cv2.putText(imgBackground, "Please wear PPE!!", (910, 655), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 2)
 
+
+                #REFRESH SESSIONS
+                if ppe_item:
+                    item_number += 1
+
+                if item_number % 5 == 0 and most_frequent_name != "Unknown":
+                    counter += 1
+                    print("Session Time: " + str(counter))
+                    imgBackground[120:120 + 23, 50:50 + 440] = clear_text2               
+                    cv2.putText(imgBackground, "Session Ends in " + str(9 - counter), (50, 140), cv2.FONT_HERSHEY_COMPLEX, 0.8, (0, 0, 255), 1)
+
+                #Alert Before SESSION ENDS
+                if counter > 8:
                     #ALERT WHEN BREACH HAPPENED
                     if not ppe_helmet and not ppe_vest:
                         breach_ppe = "no-helmet and no-vest"
@@ -477,6 +500,17 @@ def recognition():
 
                     if breach_ppe != None:
                         alert_process(breach_ppe, most_frequent_name, worker_breaches)
+
+                    #RESET SESSIONS
+                    imgBackground[120:120 + 23, 50:50 + 440] = clear_text2 
+                    face_names.clear()
+                    counter = 0
+                
+                if most_frequent_name == "Unknown":
+                    #RESET SESSIONS IF NO ONE DETECTED
+                    imgBackground[120:120 + 23, 50:50 + 440] = clear_text2 
+                    face_names.clear()
+                    counter = 0
 
         # Display the results
         cv2.imshow('SAFETY CONSTRUCTION SYSTEM', imgBackground)
@@ -495,4 +529,4 @@ video_capture = cv2.VideoCapture(0)
 video_capture.set(3, 640)
 video_capture.set(4, 480)
 
-recognition()
+main()
