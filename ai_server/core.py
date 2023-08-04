@@ -76,13 +76,6 @@ model = cv2.imread(photo_path + 'pageA.png')
 clear_text = cv2.imread(photo_path + 'clear.png')
 clear_text2 = cv2.imread(photo_path + 'clear2.png')
 
-#statusList
-folderStatusPath = photo_path + 'status'
-statusPathList = os.listdir(folderStatusPath)
-imgStatusList = []
-for path in statusPathList:
-    imgStatusList.append(cv2.imread(os.path.join(folderStatusPath, path)))
-
 #avaList
 folderAvaPath = photo_path + 'Ava'
 avaPathList = os.listdir(folderAvaPath)
@@ -220,8 +213,8 @@ def plot_bboxes(image, boxes, labels=[], colors=[], score=True, conf=None):
 
     #Define COCO Labels
     if labels == []:
-        labels = {0: u'__background__', 1: u'helmet', 2: u'Mask', 3: u'no-helmet', 
-                  4: u'NO-Mask', 5: u'no-vest', 6: u'Person', 
+        labels = {0: u'__background__', 1: u'helmet', 2: u'mask', 3: u'no-helmet', 
+                  4: u'no-mask', 5: u'no-vest', 6: u'Person', 
                   7: u'Safety Cone', 8: u'vest', 9: u'machinery', 10: u'vehicle'}
     # 'Hardhat', 'Mask', 'NO-Hardhat', 'NO-Mask', 'NO-Safety Vest', 
     # 'Person', 'Safety Cone', 'Safety Vest', 'machinery', 'vehicle'
@@ -231,7 +224,7 @@ def plot_bboxes(image, boxes, labels=[], colors=[], score=True, conf=None):
                   (123,63,0),(0,255,0),(123,63,0),(123,63,0)]
 
     label_list = []
-    exclude_labels = ['Person', 'Mask', 'NO-Mask', 'machinery', 'vehicle']
+    exclude_labels = ['Person', 'machinery', 'vehicle', 'Safety Cone']
 
     #plot each boxes
     for box in boxes:
@@ -376,6 +369,7 @@ def main():
 
         imgBackground[158:158 + 480, 52:52 + 640] = frame
         imgBackground[30:30 + 674, 800:800 + 440] = model
+        ROI = imgBackground[158:158 + 480, 52 + 160 :52 + 480]
 
         facial_recognition(known_face_encodings, known_face_names, face_names, checkin_recorded)
 
@@ -383,9 +377,9 @@ def main():
 
         cv2.imshow('SAFETY CONSTRUCTION SYSTEM', imgBackground)
 
-        results = ai_model.predict(frame, verbose=False)
+        results = ai_model.predict(ROI, verbose=False)
         #PPE_list - 3 Dimensions Array
-        ppe_item = plot_bboxes(imgBackground[158:158 + 480, 52:52 + 640], results[0].boxes.data, score=False, conf=0.85)
+        ppe_item = plot_bboxes(ROI, results[0].boxes.data, score=False, conf=0.85)
 
         ppe_list.append(ppe_item)
         #print(ppe_list)
@@ -410,10 +404,8 @@ def main():
                     stop_event.clear()
 
                     role = employee_data["worker_role"]
-
-                cv2.circle(imgBackground, (355,325), 100, (255,255,255), (2))
-                cv2.ellipse(imgBackground, (360,635), (220,210),0,180,360, (255,255,255), (2))
                 
+                cv2.rectangle(imgBackground, (52 + 160, 158), (52 + 480, 640), (0,255,0), 1, cv2.LINE_AA) 
                 cv2.putText(imgBackground, "Hi, " + most_frequent_name, (875, 120), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2)
                 cv2.putText(imgBackground, "PPE Require:", (830, 290), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), 2)
                 cv2.putText(imgBackground, "Your JobScopes Today is:", (835, 210), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), 2)
@@ -433,14 +425,10 @@ def main():
                 elif most_frequent_name == "Loc":
                     imgBackground[50:50 + 108, 1105:1105 + 108] = imgAvaList[3]
                     cv2.putText(imgBackground, role, (845, 235), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 1)
-                
-                #PPE Require - 0-Helmet and 1-Vest
-                imgBackground[330:330 + 125, 865:865 + 105] = imgPpeList[0]
-                #140 spaces
-                imgBackground[470:470 + 125, 865:865 + 105] = imgPpeList[1]
 
                 ppe_helmet = None
                 ppe_vest = None
+                ppe_mask = None
 
                 if len(ppe_list) > 10:
                     ppe_list = ppe_list[-10:]
@@ -448,28 +436,40 @@ def main():
                     
                     if sum(sublist.count("no-helmet") for sublist in ppe_list) <= 3:
                         if sum(sublist.count("helmet") for sublist in ppe_list) >= 3:
-                                imgBackground[320:320 + 130, 1030:1030 + 152] = imgStatusList[0]
+                                imgBackground[300:300 + 137, 865:865 + 125] = imgPpeList[0]
                                 ppe_helmet = True
                         elif sum(sublist.count("helmet") for sublist in ppe_list) <= 2:
-                            imgBackground[320:320 + 130, 1030:1030 + 152] = imgStatusList[1]
+                            imgBackground[300:300 + 137, 865:865 + 125] = imgPpeList[3]
                             ppe_helmet = False
                     else:
-                        imgBackground[320:320 + 130, 1030:1030 + 152] = imgStatusList[1]
+                        imgBackground[300:300 + 137, 865:865 + 125] = imgPpeList[3]
                         ppe_helmet = False
                     
                     if sum(sublist.count("no-vest") for sublist in ppe_list) <= 3:
                         if sum(sublist.count("vest") for sublist in ppe_list) >= 3:
-                                imgBackground[460:460 + 130, 1030:1030 + 152] = imgStatusList[2]
+                                imgBackground[440:440 + 137, 865:865 + 125] = imgPpeList[1]
                                 ppe_vest = True
                         elif sum(sublist.count("vest") for sublist in ppe_list) <= 2:
-                            imgBackground[460:460 + 130, 1030:1030 + 152] = imgStatusList[3]
+                            imgBackground[440:440 + 137, 865:865 + 125] = imgPpeList[4]
                             ppe_vest = False
                     else:
-                        imgBackground[460:460 + 130, 1030:1030 + 152] = imgStatusList[3]
+                        imgBackground[440:440 + 137, 865:865 + 125] = imgPpeList[4]
                         ppe_vest = False
 
+                    if sum(sublist.count("no-mask") for sublist in ppe_list) <= 3:
+                        if sum(sublist.count("mask") for sublist in ppe_list) >= 3:
+                                imgBackground[300:300 + 137, 1040:1040 + 125] = imgPpeList[2]
+                                ppe_mask = True
+                        elif sum(sublist.count("mask") for sublist in ppe_list) <= 2:
+                            imgBackground[300:300 + 137, 1040:1040 + 125] = imgPpeList[5]
+                            ppe_mask = False
+                    else:
+                        imgBackground[300:300 + 137, 1040:1040 + 125] = imgPpeList[5]
+                        ppe_mask = False
+                        
+
                     #Set the Message if both PPE detected
-                    if ppe_helmet and ppe_vest:
+                    if ppe_helmet and ppe_vest and ppe_mask:
                         imgBackground[635:635 + 35, 900:900 + 300] = clear_text
                         cv2.putText(imgBackground, "You are good to go. Stay Safe!", (905, 655), cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.8, (255, 255, 255), 2)
                     else:
@@ -488,17 +488,20 @@ def main():
                     cv2.putText(imgBackground, "Session Ends in " + str(9 - counter), (50, 140), cv2.FONT_HERSHEY_COMPLEX, 0.8, (0, 0, 255), 1)
 
                 #Alert Before SESSION ENDS
-                if counter > 8:
+                if counter > 10:
                     #ALERT WHEN BREACH HAPPENED
-                    if not ppe_helmet and not ppe_vest:
-                        breach_ppe = "no-helmet and no-vest"
-                    else:
-                        if not ppe_helmet:
-                            breach_ppe = "no-helmet"
-                        if not ppe_vest:
-                            breach_ppe = "no-vest"
+                    breach_ppe = ""
+                    if not ppe_helmet:
+                        breach_ppe += "no-helmet , "
+                    if not ppe_vest:
+                        breach_ppe += "no-vest , "
+                    if not ppe_mask:
+                        breach_ppe += "no-mask , "
 
-                    if breach_ppe != None:
+                    breach_ppe = breach_ppe[:-3]
+                    print(breach_ppe)
+
+                    if breach_ppe != "":
                         alert_process(breach_ppe, most_frequent_name, worker_breaches)
 
                     #RESET SESSIONS
@@ -506,11 +509,11 @@ def main():
                     face_names.clear()
                     counter = 0
                 
-                if most_frequent_name == "Unknown":
-                    #RESET SESSIONS IF NO ONE DETECTED
-                    imgBackground[120:120 + 23, 50:50 + 440] = clear_text2 
-                    face_names.clear()
-                    counter = 0
+            if most_frequent_name == "Unknown":
+                #RESET SESSIONS IF NO ONE DETECTED
+                imgBackground[120:120 + 23, 50:50 + 440] = clear_text2 
+                face_names.clear()
+                counter = 0
 
         # Display the results
         cv2.imshow('SAFETY CONSTRUCTION SYSTEM', imgBackground)
