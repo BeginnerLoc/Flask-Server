@@ -28,7 +28,7 @@ async def send_message(bot_token, chat_id, name, breach, image, location, breach
                     params = {
                         "caption": (
                             f"Breach number:{breach_id} \n\n"
-                            f"{name} was not wearing {breach}\n"
+                            f"{name} was not wearing a {breach}\n"
                             f"Location of breach: {location}\n"
                             f"Time of breach: {datetime.now()}"
                         )
@@ -68,8 +68,10 @@ stop_event = threading.Event()
 employee_data = None
 
 ai_model = YOLO('ai_model\\ppe_model.pt')
+# ai_model = YOLO('D:/Workspace/Flask-Server/ai_server/ai_model/ppe_model.pt')
 
 photo_path = "UI_photos\\"
+# photo_path = 'D:/Workspace/Flask-Server/ai_server/UI_photos/'
 
 imgBackground = cv2.imread(photo_path + 'background.png')
 model = cv2.imread(photo_path + 'pageA.png')
@@ -194,13 +196,15 @@ def alert_process(breach_ppe, most_frequent_name, worker_breaches):
             "case_resolved_time": None
         })
 
-        #Telegram Bot
-        # Convert the capture image to bytes
+        description = worker_breach_description.split(",")
+        description_array = [item.strip().replace("no-", "") for item in description]
+        tele_description = ", ".join(description_array)
+
         capture_image = frame_capture.copy()
         retval, buffer = cv2.imencode('.jpg', capture_image)
         image_bytes = buffer.tobytes()
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(send_message(bot_token, chat_id, worker_breach_name, worker_breach_description, image_bytes, Location, next_breach_id))
+        loop.run_until_complete(send_message(bot_token, chat_id, worker_breach_name, tele_description, image_bytes, Location, next_breach_id))
 
 def plot_bboxes(draw_box_ppe, image, boxes, labels=[], colors=[], score=True, conf=None):
     output = []
