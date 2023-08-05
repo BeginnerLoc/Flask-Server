@@ -1,11 +1,14 @@
 from flask import Blueprint, render_template, jsonify, request
 import json
 from .extensions import db_client
-import datetime
+from datetime import datetime, timedelta
 from .ai_thread import AiThread
 import threading
 from utils.create_pdf import download_pdf
 import openai
+import pymongo
+from bson import ObjectId  # Import ObjectId if you need to use it
+
 
 main = Blueprint("main", __name__)
 
@@ -74,7 +77,54 @@ def today_breaches(project_id):
 
 @main.route('/download_pdf', methods=['GET'])
 def download_pdf_route():
-    return download_pdf()
+    report_type = request.args.get('report_type')
+    start = request.args.get('start')
+    end = request.args.get('end')
+
+    project_id = str(request.args.get('project_id'))
+
+        # Connect to the MongoDB database
+    client = pymongo.MongoClient("mongodb+srv://Astro:enwVEQqCyk9gYBzN@c290.5lmj4xh.mongodb.net/")
+    db = client["construction"]
+    
+    if report_type == "incidents":
+        collection = db["hazards" + str("_"+project_id)]
+    elif report_type == "breaches":
+        collection = db["db_breaches_2"] #+ str("_"+project_id)
+        
+
+    # Define the query based on the report type and days
+    query = {}
+
+   # Calculate the time difference
+    start_date = datetime.fromisoformat(start[:-1]) 
+    end_date = datetime.fromisoformat(end[:-1])
+
+    # Access the number of days from the timedelta object
+    time_difference = end_date - start_date
+    days = time_difference.days
+
+    print("Report Type = " + report_type)
+
+    if report_type == "incidents":
+        query = [
+            {"$match": {"timestamp": {"$gte": start_date, "$lte": end_date}}},
+            {"$project": {"image": 0}}
+        ]
+    else:
+        query = [
+            {"$match": {"datetime": {"$gte": start_date, "$lte": end_date}}},
+            {"$project": {"evidence_photo": 0}} 
+        ]
+
+    data = collection.aggregate(query)
+    data_list = list(data)
+
+    # gpt_answer = explain_answer(data_list) #Uncomment when using chatgpt
+    gpt_answer = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+    #Comment line above when using chatgpt
+
+    return download_pdf(report_type, days, project_id, data_list, gpt_answer, start, end)
 
 # return JSON with all the attributes of breaches.
 @main.route("/api/<project_id>/graph_breaches")
@@ -191,7 +241,7 @@ def explain_answer(data):
     """
     # Send user prompt to OpenAI and get a response
     response = openai.ChatCompletion.create(
-        model='gpt-4',
+        model='gpt-3.5-turbo',
         max_tokens=500,  # Adjust the max tokens limit as needed
         temperature=1,  # Adjust the temperature for more or less randomness
         messages=[{"role": "system", "content": "You are a helpful assistant."},{"role": "user", "content": user_prompt}]
@@ -229,7 +279,7 @@ def explain_top_breach(data):
     """
     # Send user prompt to OpenAI and get a response
     response = openai.ChatCompletion.create(
-        model='gpt-4',
+        model='gpt-3.5-turbo',
         max_tokens=500,  # Adjust the max tokens limit as needed
         temperature=1,  # Adjust the temperature for more or less randomness
         messages=[{"role": "system", "content": "You are an expert Data Analyst."},{"role": "user", "content": user_prompt}]
@@ -259,7 +309,7 @@ def normal_message(previous_prompt, question):
     """
     # Send user prompt to OpenAI and get a response
     response = openai.ChatCompletion.create(
-        model='gpt-4',
+        model='gpt-3.5-turbo',
         max_tokens=200,  # Adjust the max tokens limit as needed
         temperature=1,  # Adjust the temperature for more or less randomness
         messages=[{"role": "system", "content": "You are an expert Data Analyst."},{"role": "user", "content": user_prompt}]
