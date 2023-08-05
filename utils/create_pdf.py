@@ -10,39 +10,10 @@ import matplotlib
 matplotlib.use('Agg')
 from datetime import datetime, timedelta
 from io import BytesIO
+import textwrap
 
-def download_pdf():
-    report_type = request.args.get('report_type')
-    days = int(request.args.get('days'))
-    project_id = str(request.args.get('project_id'))
-    print(report_type)
-    print(days)
-    print(project_id)
-
-    # Connect to the MongoDB database
-    client = pymongo.MongoClient("mongodb+srv://Astro:enwVEQqCyk9gYBzN@c290.5lmj4xh.mongodb.net/")
-    db = client["construction"]
-    
-    if report_type == "incidents":
-        collection = db["hazards" + str("_"+project_id)]
-        print(collection)
-    elif report_type == "breaches":
-        collection = db["db_breaches_2"] #+ str("_"+project_id)
-        print(collection)
-        
-
-    # Define the query based on the report type and days
-    query = {}
-
-    if days:
-        start_date = datetime.today() - timedelta(days=days)
-        if report_type == "incidents":
-            query["timestamp"] = {"$gte": start_date}
-        else:
-            query["datetime"] = {"$gte": start_date}
-
-    print(query)
-    data = collection.find(query) # Get the data from the MongoDB collection
+def download_pdf(report_type, days, project_id, data, gpt_answer, start, end):
+    print("Generating")
 
     # Create a PDF canvas (Letter sized)
     pdf = canvas.Canvas("myreport.pdf", pagesize=letter) 
@@ -78,8 +49,6 @@ def download_pdf():
     for d in data:
         pdf.setFont("Helvetica-Bold", 14)
         pdf.drawCentredString(4.25 * inch, 10.75 * inch, "Safety Report -- Page {}".format(page_number-1)) 
-        y = top_margin
-
 
         if "item" in d:
             hazard_type = d["item"]
@@ -92,6 +61,8 @@ def download_pdf():
 
         if "description" in d:
             breach_type = d["description"]
+            breach_id = d["breach_id"]
+            print(breach_type + str(breach_id))
             breach_types_count[breach_type] = breach_types_count.get(breach_type, 0 ) + 1
             resolved = str(d.get("case_resolved"))
             if resolved == "True":
@@ -105,63 +76,65 @@ def download_pdf():
         pie_labels_count_breach = list(breach_types_count.keys())
         pie_sizes_count_breach = list(breach_types_count.values())
 
-        # past_week_date = datetime.today() - timedelta(days=7)
-
-        # if page_number == 2: 
-
     if report_type == "incidents":
-        count = collection.estimated_document_count()
+        y = top_margin
+        count = len(data)
         pdf.drawString(left_margin, y, "Number of hazards within the past {} days: {}".format(days, count))
-        create_pie_chart(pie_labels_count, pie_sizes_count, "pie_chart.png", width=5, height=5)
+        create_pie_chart(pie_labels_count, pie_sizes_count, "pie_chart.png", width=5, height=8)
         pie_chart_img = ImageReader("pie_chart.png")
         pdf.drawImage(pie_chart_img, 0.3 * inch, 6 * inch, width=3.75 * inch, height=3.75 * inch)
         pdf.setFont("Helvetica-Bold", 12) 
 
-        pdf.drawString(1.5 * inch, 6.2 * inch, "Type of Hazard (%)")
+        pdf.drawString(1.0 * inch, 6.2 * inch, "Type of Hazard (%)")
         y_position = 5.7 * inch
         for label, size in zip(pie_labels_count, pie_sizes_count):
             print("YES")
             text = f"{label} - {size}"
-            pdf.drawString(1.5 * inch, y_position, text)
+            pdf.drawString(1.0 * inch, y_position, text)
             y_position += 0.2 * inch
 
-        create_pie_chart(["Resolved", "Unresolved"], [resolved_cases, unresolved_cases], "pie_chart_resolved.png", width=6.25, height=6.25)
+        create_pie_chart(["Resolved", "Unresolved"], [resolved_cases, unresolved_cases], "pie_chart_resolved.png", width=5, height=8)
         pie_chart_img = ImageReader("pie_chart_resolved.png")
         pdf.drawImage(pie_chart_img, 4.3 * inch, 6 * inch, width=3.75 * inch, height=3.75 * inch)
         pdf.setFont("Helvetica-Bold", 12) 
-        pdf.drawString(5.6 * inch, 6.2 * inch, "Resolved Cases (%)")  
+        pdf.drawString(5.1 * inch, 6.2 * inch, "Resolved Cases (%)")  
 
         y_position = 5.7 * inch
         text = f"Resolved Cases - {resolved_cases}"
-        pdf.drawString(5.6 * inch, y_position, text)
+        pdf.drawString(5.1 * inch, y_position, text)
         text = f"Unresolved Cases - {unresolved_cases}"
         y_position += 0.2 * inch
-        pdf.drawString(5.6 * inch, y_position, text)
+        pdf.drawString(5.1 * inch, y_position, text)
         
         y_position += 0.2 * inch
-
+        draw_text_multiline_within_pdf(pdf, gpt_answer, 0.5 * inch, 4 * inch, 7.5 * inch, 1 * inch)
+        print(gpt_answer)
 
 
     elif report_type == "breaches":
-        count = collection.estimated_document_count()
+        y = top_margin
+        count = len(data)
         pdf.drawString(left_margin, y, "Number of breaches within the past {} days: {}".format(days, count))
-        create_pie_chart(pie_labels_count_breach, pie_sizes_count_breach, "pie_chart.png", width=5, height=5)
+        create_pie_chart(pie_labels_count_breach, pie_sizes_count_breach, "pie_chart.png", width=5, height=8)
         pie_chart_img = ImageReader("pie_chart.png")
         pdf.drawImage(pie_chart_img, 0.3 * inch, 6 * inch, width=3.75 * inch, height=3.75 * inch)
         pdf.setFont("Helvetica-Bold", 12) 
-        pdf.drawString(1.5 * inch, 6.2 * inch, "Type of Breaches (%)")
+        pdf.drawString(1 * inch, 6.2 * inch, "Type of Breaches (%)")
 
-        y_position = 5.7 * inch
+        y_position = 5.7 * inch #(5.7 --> 5.5 [0.2 inch per line) ])
+        count_list = len(list(zip(pie_labels_count_breach, pie_sizes_count_breach)))
+        y_position = y_position - (((0.2 * count_list) - 0.4) * inch)
+
         for label, size in zip(pie_labels_count_breach, pie_sizes_count_breach):
-            print("YES")
+            print(label + str(size))
             text = f"{label} - {size}"
-            pdf.drawString(1.5 * inch, y_position, text)
+            pdf.drawString(1 * inch, y_position, text)
             y_position += 0.2 * inch
 
 
-        create_pie_chart(["Resolved", "Unresolved"], [resolved_cases, unresolved_cases], "pie_chart_resolved.png", width=6.25, height=6.25)
+        create_pie_chart(["Resolved", "Unresolved"], [resolved_cases, unresolved_cases], "pie_chart_resolved.png", width=5, height=8)
         pie_chart_img = ImageReader("pie_chart_resolved.png")
-        pdf.drawImage(pie_chart_img, 4.3 * inch, 6 * inch, width=3.75 * inch, height=3.75 * inch)
+        pdf.drawImage(pie_chart_img, 4.55 * inch, 6 * inch, width=3.5 * inch, height=3.75 * inch)
         pdf.setFont("Helvetica-Bold", 12) 
         pdf.drawString(5.6 * inch, 6.2 * inch, "Resolved Breaches (%)")  
 
@@ -170,9 +143,12 @@ def download_pdf():
         pdf.drawString(5.6 * inch, y_position, text)
         text = f"Unresolved Cases - {unresolved_cases}"
         y_position += 0.2 * inch
-        pdf.drawString(5.6 * inch, y_position, text)
+        pdf.drawString(5.2 * inch, y_position, text)
         
         y_position += 0.2 * inch
+
+        # pdf.drawString(1.5 * inch, 4.2 * inch, gpt_answer)
+        # draw_text_within_pdf(pdf, gpt_answer, 5.3 * inch, 5.3 * inch)
         
 
     # Draw page number at the bottom of the last page
@@ -201,15 +177,42 @@ def download_pdf():
 
     return response
 
-def create_pie_chart(labels, sizes, filename, width=5, height=5):
+# def create_pie_chart(labels, sizes, filename, width=5, height=5):
+#     print("Pie Chart Data:")
+#     for label, size in zip(labels, sizes):
+#         print(f"{label}: {size}")
+
+#     plt.figure(figsize=(width, height))
+#     wedges, labels, autopct = plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90)
+#     plt.axis('equal')
+#     for label in labels:
+#         label.set_fontsize(8)
+#     plt.savefig(filename)
+#     plt.close()
+
+def create_pie_chart(labels, sizes, filename, width=5, height=8):
     print("Pie Chart Data:")
     for label, size in zip(labels, sizes):
         print(f"{label}: {size}")
 
     plt.figure(figsize=(width, height))
-    wedges, labels, autopct = plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90)
+    wedges, _, _ = plt.pie(sizes, labels=None, autopct='%.0f%%', startangle=90)
+
+    # Draw a legend with labels and percentages on the right
+    plt.legend(wedges, labels, loc="center left", title="Labels", bbox_to_anchor=(1, 0.5))
+
     plt.axis('equal')
-    for label in labels:
-        label.set_fontsize(8)
-    plt.savefig(filename)
+    plt.gca().set_aspect('equal')  # Set aspect ratio to equal for a proper circle
+    plt.savefig(filename, bbox_inches='tight')
     plt.close()
+
+
+def draw_text_multiline_within_pdf(pdf, text, x, y, max_width, max_height):
+    lines = textwrap.wrap(text, width=int(max_width / pdf.stringWidth('A', 'Helvetica', 12)))
+    line_height = pdf._leading
+
+    for line in lines:
+        if y - line_height < 0:
+            break  # Stop if the remaining space is not enough for a new line
+        pdf.drawString(x, y, line)
+        y -= line_height
