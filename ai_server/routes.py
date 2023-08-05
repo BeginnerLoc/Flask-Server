@@ -80,18 +80,16 @@ def download_pdf_route():
     report_type = request.args.get('report_type')
     start = request.args.get('start')
     end = request.args.get('end')
-
     project_id = str(request.args.get('project_id'))
 
-        # Connect to the MongoDB database
+    # Connect to the MongoDB database
     client = pymongo.MongoClient("mongodb+srv://Astro:enwVEQqCyk9gYBzN@c290.5lmj4xh.mongodb.net/")
     db = client["construction"]
     
     if report_type == "incidents":
         collection = db["hazards" + str("_"+project_id)]
     elif report_type == "breaches":
-        collection = db["db_breaches_2"] #+ str("_"+project_id)
-        
+        collection = db["db_breaches_2"] #+ str("_"+project_id) 
 
     # Define the query based on the report type and days
     query = {}
