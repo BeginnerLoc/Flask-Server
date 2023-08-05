@@ -202,7 +202,7 @@ def alert_process(breach_ppe, most_frequent_name, worker_breaches):
         loop = asyncio.get_event_loop()
         loop.run_until_complete(send_message(bot_token, chat_id, worker_breach_name, worker_breach_description, image_bytes, Location, next_breach_id))
 
-def plot_bboxes(image, boxes, labels=[], colors=[], score=True, conf=None):
+def plot_bboxes(draw_box_ppe, image, boxes, labels=[], colors=[], score=True, conf=None):
     output = []
     
     # #Define COCO Labels
@@ -241,30 +241,31 @@ def plot_bboxes(image, boxes, labels=[], colors=[], score=True, conf=None):
                 color = colors[int(box[-1])]
             
             #box label
-            if label not in label_list and label not in exclude_labels:
-                label_list.append(label)
+            if draw_box_ppe:
+                if label not in label_list and label not in exclude_labels:
+                    label_list.append(label)
 
-                lw = max(round(sum(image.shape) / 2 * 0.003), 2)
-                p1, p2 = (int(box[0]), int(box[1])), (int(box[2]), int(box[3]))
-                cv2.rectangle(image, p1, p2, color, thickness=lw, lineType=cv2.LINE_AA)
-                tf = max(lw - 1, 1)  # font thickness
-                w, h = cv2.getTextSize(label, 0, fontScale=lw / 3, thickness=tf)[0]  # text width, height
-                outside = p1[1] - h >= 3
-                p2 = p1[0] + w, p1[1] - h - 3 if outside else p1[1] + h + 3
-                cv2.rectangle(image, p1, p2, color, -1, cv2.LINE_AA)  # filled
-                cv2.putText(image,
-                            label, (p1[0], p1[1] - 2 if outside else p1[1] + h + 2),
-                            0,
-                            lw / 3,
-                            color=(255, 255, 255),
-                            thickness=tf,
-                            lineType=cv2.LINE_AA)
-                output.append(label)
+                    lw = max(round(sum(image.shape) / 2 * 0.003), 2)
+                    p1, p2 = (int(box[0]), int(box[1])), (int(box[2]), int(box[3]))
+                    cv2.rectangle(image, p1, p2, color, thickness=lw, lineType=cv2.LINE_AA)
+                    tf = max(lw - 1, 1)  # font thickness
+                    w, h = cv2.getTextSize(label, 0, fontScale=lw / 3, thickness=tf)[0]  # text width, height
+                    outside = p1[1] - h >= 3
+                    p2 = p1[0] + w, p1[1] - h - 3 if outside else p1[1] + h + 3
+                    cv2.rectangle(image, p1, p2, color, -1, cv2.LINE_AA)  # filled
+                    cv2.putText(image,
+                                label, (p1[0], p1[1] - 2 if outside else p1[1] + h + 2),
+                                0,
+                                lw / 3,
+                                color=(255, 255, 255),
+                                thickness=tf,
+                                lineType=cv2.LINE_AA)
+                    output.append(label)
     return output
 
-def facial_recognition(known_face_encodings, known_face_names, face_names, checkin_recorded):
+def facial_recognition(frame, draw_box_face, known_face_encodings, known_face_names, face_names, checkin_recorded):
     # Resize frame of video to 1/4 size for faster face recognition processing
-    small_frame = cv2.resize(imgBackground[158:158 + 480, 52:52 + 640], (0, 0), fx=0.25, fy=0.25)
+    small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
 
     # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
     rgb_small_frame = small_frame[:, :, ::-1]
@@ -331,18 +332,19 @@ def facial_recognition(known_face_encodings, known_face_names, face_names, check
                                     upsert=True)
             
     #Draw Box for Face
-    # for (top, right, bottom, left), name in zip(face_locations, face_names):
-    #     # Scale back up face locations since the frame we detected in was scaled to 1/4 size
-    #     top *= 4
-    #     right *= 4
-    #     bottom *= 4
-    #     left *= 4
+    if draw_box_face:
+        for (top, right, bottom, left) in face_locations:
+            # Scale back up face locations since the frame we detected in was scaled to 1/4 size
+            top *= 4
+            right *= 4
+            bottom *= 4
+            left *= 4
 
-    #     # Draw a box around the face
-    #     if name != "Unknown":
-    #         cv2.rectangle(imgBackground[158:158 + 480, 52:52 + 640], (left, top), (right, bottom), (0, 255, 0), 2)
-    #         cv2.rectangle(imgBackground[158:158 + 480, 52:52 + 640], (left, bottom - 35), (right, bottom), (0, 255, 0), cv2.FILLED)
-    #         cv2.putText(imgBackground[158:158 + 480, 52:52 + 640], name, (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255), 1)
+            # Draw a box around the face
+            if name != "Unknown":
+                cv2.rectangle(imgBackground[158:158 + 480, 52:52 + 640], (left, top), (right, bottom), (0, 255, 0), 2)
+                cv2.rectangle(imgBackground[158:158 + 480, 52:52 + 640], (left, bottom - 35), (right, bottom), (0, 255, 0), cv2.FILLED)
+                cv2.putText(imgBackground[158:158 + 480, 52:52 + 640], name, (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 1.0, (255, 255, 255), 1)
 
 def main():
     encoding_list = retrieve_encoding()
@@ -358,10 +360,10 @@ def main():
     known_face_encodings = [encoding[1] for encoding in encoding_list]
     known_face_names = [encoding[0] for encoding in encoding_list]
     
-    face_locations = []
-    face_encodings = []
     face_names = []
     ppe_list = []
+    draw_box_face = True
+    draw_box_ppe = False
 
     while True:
         # Grab a single frame of video
@@ -371,7 +373,7 @@ def main():
         imgBackground[30:30 + 674, 800:800 + 440] = model
         ROI = imgBackground[158:158 + 480, 52 + 160 :52 + 480]
 
-        facial_recognition(known_face_encodings, known_face_names, face_names, checkin_recorded)
+        facial_recognition(frame, draw_box_face, known_face_encodings, known_face_names, face_names, checkin_recorded)
 
         cv2.putText(imgBackground, "Authenticating...", (910, 655), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 255), 2)
 
@@ -379,7 +381,7 @@ def main():
 
         results = ai_model.predict(ROI, verbose=False)
         #PPE_list - 3 Dimensions Array
-        ppe_item = plot_bboxes(ROI, results[0].boxes.data, score=False, conf=0.85)
+        ppe_item = plot_bboxes(draw_box_ppe, ROI, results[0].boxes.data, score=False, conf=0.85)
 
         ppe_list.append(ppe_item)
         #print(ppe_list)
@@ -388,6 +390,8 @@ def main():
 
         #Find the most face detect
         if len(face_names) > 10:
+            draw_box_face = False
+            draw_box_ppe = True
             #face_names = face_names[-15:]
             
             most_frequent_name = Counter(face_names[:10]).most_common(1)[0][0]
@@ -485,7 +489,7 @@ def main():
                     counter += 1
                     print("Session Time: " + str(counter))
                     imgBackground[120:120 + 23, 50:50 + 440] = clear_text2               
-                    cv2.putText(imgBackground, "Session Ends in " + str(9 - counter), (50, 140), cv2.FONT_HERSHEY_COMPLEX, 0.8, (0, 0, 255), 1)
+                    cv2.putText(imgBackground, "Session Ends in " + str(11 - counter), (50, 140), cv2.FONT_HERSHEY_COMPLEX, 0.8, (0, 0, 255), 1)
 
                 #Alert Before SESSION ENDS
                 if counter > 10:
@@ -508,12 +512,16 @@ def main():
                     imgBackground[120:120 + 23, 50:50 + 440] = clear_text2 
                     face_names.clear()
                     counter = 0
+                    draw_box_face = True
+                    draw_box_ppe = False
                 
             if most_frequent_name == "Unknown":
                 #RESET SESSIONS IF NO ONE DETECTED
                 imgBackground[120:120 + 23, 50:50 + 440] = clear_text2 
                 face_names.clear()
                 counter = 0
+                draw_box_face = True
+                draw_box_ppe = False
 
         # Display the results
         cv2.imshow('SAFETY CONSTRUCTION SYSTEM', imgBackground)
