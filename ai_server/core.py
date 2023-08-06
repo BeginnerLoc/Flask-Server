@@ -324,7 +324,6 @@ def facial_recognition(frame, draw_box_face, known_face_encodings, known_face_na
 
             # collection = db["checkin_1"]
             collection = db["checkin_2"]
-            collection3 = db["checkin_1"] 
 
             checkin_entry = {
                 "name": name,
@@ -338,10 +337,6 @@ def facial_recognition(frame, draw_box_face, known_face_encodings, known_face_na
 
             # Insert the check-in data for the day into the MongoDB collection
             collection.update_one({"date": checkin_data["date"]}, 
-                                    {"$push": {"check_ins": {"$each": checkin_data["check_ins"]}}}, 
-                                    upsert=True)
-            
-            collection3.update_one({"date": checkin_data["date"]}, 
                                     {"$push": {"check_ins": {"$each": checkin_data["check_ins"]}}}, 
                                     upsert=True)
             
