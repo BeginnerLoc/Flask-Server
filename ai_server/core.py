@@ -303,7 +303,7 @@ def facial_recognition(frame, draw_box_face, known_face_encodings, known_face_na
             
         face_names.append(name)
 
-        #Live check in:
+        # "Number of workers working today" feature:
 
         # Create a single document for each day to store all the worker check-ins
         checkin_data = {
@@ -324,7 +324,7 @@ def facial_recognition(frame, draw_box_face, known_face_encodings, known_face_na
                 worker_id = None
 
             # collection = db["checkin_1"]
-            collection = db["checkin_2"] 
+            collection = db["checkin_2"]
 
 
             print("=====================================================================================")

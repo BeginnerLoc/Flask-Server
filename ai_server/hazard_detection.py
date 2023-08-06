@@ -10,8 +10,6 @@ import asyncio
 import httpx 
 
 async def send_message(bot_token, chat_id, item, image, location, id):
-    base64_image = base64.b64encode(image).decode('utf-8')  # Decode base64 to string
-    
     retries = 3
     for attempt in range(1, retries + 1):
         try:
@@ -73,13 +71,16 @@ async def store_image_in_mongodb(image, item_name):
             highest_breach = collection.find_one(sort=[("hazard_id", pymongo.DESCENDING)])
             next_breach_id = highest_breach["hazard_id"] + 1 if highest_breach else 1
 
-            post = {
+            #MongoDB Insertion
+            post = { 
                 "image": base64_image,
                 "timestamp": datetime.now(),
-                "location": "Walkway",
+                "location": "Walkway",  
                 "item": item_name,
                 "hazard_id": next_breach_id,
-                "case_resolved": False
+                "case_resolved": False,
+                "case_resolved_time": None,
+                "case_resolution": None
             }
             
             collection.insert_one(post)
@@ -91,6 +92,7 @@ async def store_image_in_mongodb(image, item_name):
             if attempt < retries - 1:
                 await asyncio.sleep(1)  # Wait before retrying
     return None #If fail to add to mongodb
+
 async def main():
     # Variables for object tracking
     tracked_object_id = None
@@ -105,9 +107,7 @@ async def main():
 
     while True:
         _, frame = cap.read()
-
-        # Draw the rectangle ROI on the frame
-        cv2.rectangle(frame, (roi_x1, roi_y1), (roi_x2, roi_y2), (0, 0, 255), 2)
+        cv2.rectangle(frame, (roi_x1, roi_y1), (roi_x2, roi_y2), (0, 0, 255), 2) #ROI
 
         img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         annotator = Annotator(frame)
@@ -143,8 +143,6 @@ async def main():
                                     capture_time = datetime.now()
                                     item_name = model.names[int(c)]
                                     location = "Walkway"
-
-                                    # if check_mongodb(item_name, location):
                                     id = await store_image_in_mongodb(capture_image, item_name)
 
                                     # Convert the capture image to bytes

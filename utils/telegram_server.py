@@ -29,14 +29,6 @@ async def reply_to_message(bot: Bot, update: Update):
     if message_text == '/start':
         response_text = "Welcome, " + chat_name + "\nYour chat id is " + str(chat_id) +"\nUse the /commandlist to view all commands"
 
-    # Connectivity test
-    elif message_text == '/ping': #For testing connective purposes only
-        start_time = time.time()
-        await bot.send_message(chat_id=chat_id, text="Pinging...")
-        end_time = time.time()
-        ping_time = end_time - start_time
-        response_text = f"Pong! Bot latency: {ping_time:.2f} seconds"
-
     # Command List 
     elif message_text == '/commandlist':
         response_text = textwrap.dedent("""\

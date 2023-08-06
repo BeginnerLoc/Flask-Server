@@ -95,14 +95,11 @@ def download_pdf_route():
     elif report_type == "breaches":
         collection = db["db_breaches_2"] #+ str("_"+project_id) 
 
-    # Define the query based on the report type and days
     query = {}
 
    # Calculate the time difference
     start_date = datetime.fromisoformat(start[:-1]) 
     end_date = datetime.fromisoformat(end[:-1])
-
-    # Access the number of days from the timedelta object
     time_difference = end_date - start_date
     days = time_difference.days
 
@@ -116,7 +113,7 @@ def download_pdf_route():
     else:
         query = [
             {"$match": {"datetime": {"$gte": start_date, "$lte": end_date}}},
-            {"$project": {"evidence_photo": 0}} 
+            {"$project": {"_id": 0, "evidence_photo": 0, "case_resolved_time": 0, "case_resolution": 0, "datetime": 0}}
         ]
 
     data = collection.aggregate(query)
