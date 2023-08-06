@@ -39,7 +39,6 @@ def download_pdf(report_type, days, project_id, data, gpt_answer, start, end):
     page_number = 2
 
     hazard_types_count = {}
-    # hazard_counts_to_display = [] 
     breach_types_count = {}
     resolved_cases = 0
     unresolved_cases = 0
@@ -59,8 +58,6 @@ def download_pdf(report_type, days, project_id, data, gpt_answer, start, end):
 
         if "description" in d:
             breach_type = d["description"]
-            breach_id = d["breach_id"]
-            # print(breach_type + str(breach_id))
             breach_types_count[breach_type] = breach_types_count.get(breach_type, 0 ) + 1
             resolved = str(d.get("case_resolved"))
             if resolved == "True":
@@ -76,7 +73,6 @@ def download_pdf(report_type, days, project_id, data, gpt_answer, start, end):
 
     if report_type == "incidents":
         y = top_margin
-        count = len(data)
         pdf.drawString(left_margin, y, "Number of hazards from {} to {}".format(start[:10], end[:10]))
         create_pie_chart(pie_labels_count, pie_sizes_count, "pie_chart.png", width=5, height=8)
         pie_chart_img = ImageReader("pie_chart.png")
@@ -171,9 +167,6 @@ def download_pdf(report_type, days, project_id, data, gpt_answer, start, end):
     return response
 
 def create_pie_chart(labels, sizes, filename, width=5, height=8):
-    # print("Pie Chart Data:")
-    # for label, size in zip(labels, sizes):
-    #     print(f"{label}: {size}")
     plt.figure(figsize=(width, height))
     wedges, _, _ = plt.pie(sizes, labels=None, autopct='%.0f%%', startangle=90)
 
