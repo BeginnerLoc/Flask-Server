@@ -10,8 +10,6 @@ import asyncio
 import httpx 
 
 async def send_message(bot_token, chat_id, item, image, location, id):
-    base64_image = base64.b64encode(image).decode('utf-8')  # Decode base64 to string
-    
     retries = 3
     for attempt in range(1, retries + 1):
         try:
@@ -73,7 +71,8 @@ async def store_image_in_mongodb(image, item_name):
             highest_breach = collection.find_one(sort=[("hazard_id", pymongo.DESCENDING)])
             next_breach_id = highest_breach["hazard_id"] + 1 if highest_breach else 1
 
-            post = {
+            #MongoDB Insertion
+            post = { 
                 "image": base64_image,
                 "timestamp": datetime.now(),
                 "location": "Walkway",  
@@ -108,7 +107,6 @@ async def main():
 
     while True:
         _, frame = cap.read()
-
         cv2.rectangle(frame, (roi_x1, roi_y1), (roi_x2, roi_y2), (0, 0, 255), 2) #ROI
 
         img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -145,8 +143,6 @@ async def main():
                                     capture_time = datetime.now()
                                     item_name = model.names[int(c)]
                                     location = "Walkway"
-
-                                    # if check_mongodb(item_name, location):
                                     id = await store_image_in_mongodb(capture_image, item_name)
 
                                     # Convert the capture image to bytes
