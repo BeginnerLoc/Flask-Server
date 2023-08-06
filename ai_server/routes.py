@@ -109,7 +109,7 @@ def download_pdf_route():
     else:
         query = [
             {"$match": {"datetime": {"$gte": start_date, "$lte": end_date}}},
-            {"$project": {"evidence_photo": 0}} 
+            {"$project": {"_id": 0, "evidence_photo": 0, "case_resolved_time": 0, "case_resolution": 0, "datetime": 0}}
         ]
 
     data = collection.aggregate(query)
