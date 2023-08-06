@@ -76,10 +76,12 @@ async def store_image_in_mongodb(image, item_name):
             post = {
                 "image": base64_image,
                 "timestamp": datetime.now(),
-                "location": "Walkway",
+                "location": "Walkway",  
                 "item": item_name,
                 "hazard_id": next_breach_id,
-                "case_resolved": False
+                "case_resolved": False,
+                "case_resolved_time": None,
+                "case_resolution": None
             }
             
             collection.insert_one(post)
@@ -91,6 +93,7 @@ async def store_image_in_mongodb(image, item_name):
             if attempt < retries - 1:
                 await asyncio.sleep(1)  # Wait before retrying
     return None #If fail to add to mongodb
+
 async def main():
     # Variables for object tracking
     tracked_object_id = None
@@ -106,8 +109,7 @@ async def main():
     while True:
         _, frame = cap.read()
 
-        # Draw the rectangle ROI on the frame
-        cv2.rectangle(frame, (roi_x1, roi_y1), (roi_x2, roi_y2), (0, 0, 255), 2)
+        cv2.rectangle(frame, (roi_x1, roi_y1), (roi_x2, roi_y2), (0, 0, 255), 2) #ROI
 
         img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         annotator = Annotator(frame)

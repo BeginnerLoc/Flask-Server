@@ -91,14 +91,11 @@ def download_pdf_route():
     elif report_type == "breaches":
         collection = db["db_breaches_2"] #+ str("_"+project_id) 
 
-    # Define the query based on the report type and days
     query = {}
 
    # Calculate the time difference
     start_date = datetime.fromisoformat(start[:-1]) 
     end_date = datetime.fromisoformat(end[:-1])
-
-    # Access the number of days from the timedelta object
     time_difference = end_date - start_date
     days = time_difference.days
 
