@@ -123,6 +123,7 @@ def update_employee(name):
     collection = db["workers"]
     global employee_data
     employee_data = collection.find_one({"name": name})
+    print(employee_data)
        
 def search_data_thread(name):
     thread = threading.Thread(target=update_employee, args=(name,))
@@ -325,6 +326,8 @@ def facial_recognition(frame, draw_box_face, known_face_encodings, known_face_na
             # collection = db["checkin_1"]
             collection = db["checkin_2"] 
 
+
+            print("=====================================================================================")
             checkin_entry = {
                 "name": name,
                 "worker_id": worker_id,

@@ -65,8 +65,12 @@ def today_breaches(project_id):
     collection = db[collection_name]
     
     # Get the start and end of today
-    start_of_today = datetime.datetime.combine(datetime.datetime.today().date(), datetime.time.min)
-    end_of_today = datetime.datetime.combine(datetime.datetime.today().date(), datetime.time.max)
+    start_of_today = datetime.combine(datetime.today().date(), datetime.today().min.time())
+    end_of_today = datetime.combine(datetime.today().date(), datetime.today().max.time())
+    
+    print(start_of_today)
+    print(end_of_today)
+    
 
     # Count the number of documents with today's date
     count = collection.count_documents({'datetime': {'$gte': start_of_today, '$lte': end_of_today}})
@@ -132,7 +136,7 @@ def breaches(project_id):
     collection = db[collection_name]
     
     # retrieve documents from the collection
-    result = collection.find()
+    result = collection.find({}, {"evidence_photo": 0})
 
     # Convert the result to a list of documents and convert ObjectId to string
     documents = [doc for doc in result]
@@ -156,7 +160,7 @@ def get_indiv_breaches(project_id):
         query["worker_name"] = name_filter
 
     # Retrieve documents from the collection based on the filter
-    documents = collection.find(query)
+    documents = collection.find(query, {"evidence_photo": 0})
 
     # Convert documents to a list
     breach_list = list(documents)
@@ -189,10 +193,10 @@ def live_checkin(project_id):
     collection = db[collection_name]
     
     # Get the current date and time
-    current_datetime = datetime.datetime.now()
+    current_datetime = datetime.now()
 
     # Retrieve the document for the current date
-    document = collection.find_one({"date": current_datetime.date().strftime("%Y-%m-%d")})
+    document = collection.find_one({"date": current_datetime.date().strftime("%Y-%m-%d")}, {"evidence_photo": 0})
 
     if document:
         # Count the number of worker check-ins
