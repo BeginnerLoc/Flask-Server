@@ -230,6 +230,11 @@ def plot_bboxes(draw_box_ppe, image, boxes, labels=[], colors=[], score=True, co
     label_list = []
     exclude_labels = ['Person', 'machinery', 'vehicle', 'Safety Cone']
 
+    if(employee_data is not None):
+        role = employee_data["position"]
+        if role == "Supervisor":
+            exclude_labels = ['Person', 'machinery', 'vehicle', 'Safety Cone', 'no-mask']
+
     #plot each boxes
     for box in boxes:
         #add score in label if score=True
@@ -411,12 +416,12 @@ def main():
                     # Reset the stop_event object for the next iteration
                     stop_event.clear()
 
-                    role = employee_data["worker_role"]
+                    role = employee_data["position"]
                 
                 cv2.rectangle(imgBackground, (52 + 160, 158), (52 + 480, 640), (0,255,0), 1, cv2.LINE_AA) 
                 cv2.putText(imgBackground, "Hi, " + most_frequent_name, (875, 120), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2)
                 cv2.putText(imgBackground, "PPE Require:", (830, 290), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), 2)
-                cv2.putText(imgBackground, "Your JobScopes Today is:", (835, 210), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), 2)
+                cv2.putText(imgBackground, "Your Role is:", (835, 210), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), 2)
 
                 if most_frequent_name == "Astro":
                     imgBackground[50:50 + 108, 1105:1105 + 108] = imgAvaList[0]
@@ -441,41 +446,63 @@ def main():
                 if len(ppe_list) > 10:
                     ppe_list = ppe_list[-10:]
                     #if PPE existing more than 5 frames is True, less than 2 frames is as False
-                    
-                    if sum(sublist.count("no-helmet") for sublist in ppe_list) <= 3:
-                        if sum(sublist.count("helmet") for sublist in ppe_list) >= 3:
-                                imgBackground[300:300 + 137, 865:865 + 125] = imgPpeList[0]
-                                ppe_helmet = True
-                        elif sum(sublist.count("helmet") for sublist in ppe_list) <= 2:
+                    if role != "Supervisor":
+                        if sum(sublist.count("no-helmet") for sublist in ppe_list) <= 3:
+                            if sum(sublist.count("helmet") for sublist in ppe_list) >= 3:
+                                    imgBackground[300:300 + 137, 865:865 + 125] = imgPpeList[0]
+                                    ppe_helmet = True
+                            elif sum(sublist.count("helmet") for sublist in ppe_list) <= 2:
+                                imgBackground[300:300 + 137, 865:865 + 125] = imgPpeList[3]
+                                ppe_helmet = False
+                        else:
                             imgBackground[300:300 + 137, 865:865 + 125] = imgPpeList[3]
                             ppe_helmet = False
-                    else:
-                        imgBackground[300:300 + 137, 865:865 + 125] = imgPpeList[3]
-                        ppe_helmet = False
-                    
-                    if sum(sublist.count("no-vest") for sublist in ppe_list) <= 3:
-                        if sum(sublist.count("vest") for sublist in ppe_list) >= 3:
-                                imgBackground[440:440 + 137, 865:865 + 125] = imgPpeList[1]
-                                ppe_vest = True
-                        elif sum(sublist.count("vest") for sublist in ppe_list) <= 2:
+                        
+                        if sum(sublist.count("no-vest") for sublist in ppe_list) <= 3:
+                            if sum(sublist.count("vest") for sublist in ppe_list) >= 3:
+                                    imgBackground[440:440 + 137, 865:865 + 125] = imgPpeList[1]
+                                    ppe_vest = True
+                            elif sum(sublist.count("vest") for sublist in ppe_list) <= 2:
+                                imgBackground[440:440 + 137, 865:865 + 125] = imgPpeList[4]
+                                ppe_vest = False
+                        else:
                             imgBackground[440:440 + 137, 865:865 + 125] = imgPpeList[4]
                             ppe_vest = False
-                    else:
-                        imgBackground[440:440 + 137, 865:865 + 125] = imgPpeList[4]
-                        ppe_vest = False
-
-                    if sum(sublist.count("no-mask") for sublist in ppe_list) <= 3:
-                        if sum(sublist.count("mask") for sublist in ppe_list) >= 3:
-                                imgBackground[300:300 + 137, 1040:1040 + 125] = imgPpeList[2]
-                                ppe_mask = True
-                        elif sum(sublist.count("mask") for sublist in ppe_list) <= 2:
+                            
+                        if sum(sublist.count("no-mask") for sublist in ppe_list) <= 3:
+                            if sum(sublist.count("mask") for sublist in ppe_list) >= 3:
+                                    imgBackground[300:300 + 137, 1040:1040 + 125] = imgPpeList[2]
+                                    ppe_mask = True
+                            elif sum(sublist.count("mask") for sublist in ppe_list) <= 2:
+                                imgBackground[300:300 + 137, 1040:1040 + 125] = imgPpeList[5]
+                                ppe_mask = False
+                        else:
                             imgBackground[300:300 + 137, 1040:1040 + 125] = imgPpeList[5]
                             ppe_mask = False
                     else:
-                        imgBackground[300:300 + 137, 1040:1040 + 125] = imgPpeList[5]
-                        ppe_mask = False
+                        ppe_mask = True
+                        if sum(sublist.count("no-helmet") for sublist in ppe_list) <= 3:
+                            if sum(sublist.count("helmet") for sublist in ppe_list) >= 3:
+                                    imgBackground[300:300 + 137, 865:865 + 125] = imgPpeList[0]
+                                    ppe_helmet = True
+                            elif sum(sublist.count("helmet") for sublist in ppe_list) <= 2:
+                                imgBackground[300:300 + 137, 865:865 + 125] = imgPpeList[3]
+                                ppe_helmet = False
+                        else:
+                            imgBackground[300:300 + 137, 865:865 + 125] = imgPpeList[3]
+                            ppe_helmet = False
                         
-
+                        if sum(sublist.count("no-vest") for sublist in ppe_list) <= 3:
+                            if sum(sublist.count("vest") for sublist in ppe_list) >= 3:
+                                    imgBackground[300:300 + 137, 1040:1040 + 125] = imgPpeList[1]
+                                    ppe_vest = True
+                            elif sum(sublist.count("vest") for sublist in ppe_list) <= 2:
+                                imgBackground[300:300 + 137, 1040:1040 + 125] = imgPpeList[4]
+                                ppe_vest = False
+                        else:
+                            imgBackground[300:300 + 137, 1040:1040 + 125] = imgPpeList[4]
+                            ppe_vest = False
+                            
                     #Set the Message if both PPE detected
                     if ppe_helmet and ppe_vest and ppe_mask:
                         imgBackground[635:635 + 35, 900:900 + 300] = clear_text
