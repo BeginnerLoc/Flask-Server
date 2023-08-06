@@ -129,8 +129,7 @@ async def main():
                         elif tracked_object_id == int(c):
                             # Object is already being tracked
                             distance = calculate_distance(tracked_object_position, (x, y))
-                            if distance < 5:
-                                # Object has minor movement, continue tracking
+                            if distance < 5: # Object has minor movement, continue tracking
                                 elapsed_time = datetime.now() - tracked_object_timer
                                 # Print the elapsed time
                                 print(f"Object {tracked_object_id} has remained in the same position for: {elapsed_time}")
@@ -149,7 +148,6 @@ async def main():
                                     retval, buffer = cv2.imencode('.jpg', capture_image)
                                     image_bytes = buffer.tobytes()
                                     await send_message(bot_token, chat_id, item_name, image_bytes, location, id)
-
                             else:
                                 # If object has moved significantly, reset tracking variables
                                 tracked_object_position = (x, y)
