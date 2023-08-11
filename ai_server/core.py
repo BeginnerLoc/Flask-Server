@@ -47,7 +47,7 @@ async def send_message(bot_token, chat_id, name, breach, image, location, breach
 
 #Telegram Bot token and Chat ID (Astro's Chat ID)
 bot_token = '6060060457:AAGRyic-1HVFcUy1dSEsdLMJo0rB9Mvz0y0'
-chat_id  = '443723632'
+chat_id  = '1629576653'
 
 uri = "mongodb+srv://loctientran235:PUp2XTv7tkArDjJB@c290.5lmj4xh.mongodb.net/?retryWrites=true&w=majority"
 # Create a new client and connect to the server
@@ -421,7 +421,7 @@ def main():
 
                     role = employee_data["position"]
                 
-                cv2.rectangle(imgBackground, (52 + 160, 158), (52 + 480, 640), (0,255,0), 1, cv2.LINE_AA) 
+                cv2.rectangle(imgBackground, (52 + 160, 161), (52 + 480, 636), (0,255,0), 1, cv2.LINE_AA) 
                 cv2.putText(imgBackground, "Hi, " + most_frequent_name, (875, 120), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2)
                 cv2.putText(imgBackground, "PPE Require:", (830, 290), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), 2)
                 cv2.putText(imgBackground, "Your Role is:", (835, 210), cv2.FONT_HERSHEY_COMPLEX, 0.7, (255, 255, 255), 2)
@@ -523,10 +523,10 @@ def main():
                     counter += 1
                     print("Session Time: " + str(counter))
                     imgBackground[120:120 + 23, 50:50 + 440] = clear_text2               
-                    cv2.putText(imgBackground, "Session Ends in " + str(11 - counter), (50, 140), cv2.FONT_HERSHEY_COMPLEX, 0.8, (0, 0, 255), 1)
+                    cv2.putText(imgBackground, "Session Ends in " + str(16 - counter), (50, 140), cv2.FONT_HERSHEY_COMPLEX, 0.8, (0, 0, 255), 1)
 
                 #Alert Before SESSION ENDS
-                if counter > 10:
+                if counter > 15:
                     #ALERT WHEN BREACH HAPPENED
                     breach_ppe = ""
                     if not ppe_helmet:
