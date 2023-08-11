@@ -316,7 +316,7 @@ def normal_message(previous_prompt, question):
     answer = response.choices[0].message.content
     return answer
 
-# Return the breach image from db_breaches_2 according to the breach ID.
+# Return the breach image and related information from db_breaches_2 according to the breach ID for the Modal.
 @main.route('/api/<project_id>/get_breach_image/<string:breach_id>', methods=['GET'])
 def get_breach_image(project_id, breach_id):
     db = db_client["construction"]
@@ -335,12 +335,33 @@ def get_breach_image(project_id, breach_id):
             description = breach['description']
             breach_id = breach['breach_id']
             location = breach['location']
+            case_resolved = breach['case_resolved']
+            case_resolved_time = breach['case_resolved_time']
+            case_resolution = breach['case_resolution']
 
-            return jsonify({
+            if case_resolved is not False and case_resolved_time is not None and case_resolution is not None:
+
+                return jsonify({
+                    'worker_name': worker_name,
+                    'description': description,
+                    'breach_id': breach_id,
+                    'location': location,
+                    'case_resolved': "True",
+                    'case_resolved_time': case_resolved_time,
+                    'case_resolution': case_resolution,
+                    'image': base64_image 
+                                })
+            
+            else:
+
+                return jsonify({
                 'worker_name': worker_name,
                 'description': description,
                 'breach_id': breach_id,
                 'location': location,
+                'case_resolved': "False",
+                'case_resolved_time': "None",
+                'case_resolution': "None",
                 'image': base64_image 
                             })
 
