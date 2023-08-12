@@ -17,8 +17,8 @@ def download_pdf(report_type, days, project_id, data, gpt_answer, start, end):
     pdf = canvas.Canvas("myreport.pdf", pagesize=letter) 
 
     # Define the layout and formatting of the PDF report (Page 1 of the report)
-    pdf.setFont("Helvetica-Bold", 48) 
-    pdf.drawCentredString(4.25 * inch, 7.5 * inch, "Loc Company PTE LTD")
+    pdf.setFont("Helvetica-Bold", 40) 
+    pdf.drawCentredString(4.25 * inch, 7.5 * inch, "Very Safe Company Pte Ltd")
     pdf.setFont("Helvetica-Bold", 36)
     pdf.drawCentredString(4.25 * inch, 6.75 * inch, "Safety Report")
 
