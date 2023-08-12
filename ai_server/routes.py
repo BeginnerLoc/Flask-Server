@@ -272,9 +272,14 @@ def explain_top_breach(data):
         <data>{data}</data>
         ####
         The data is the workers that committed the most number of breaches from a bar chart.
-        Give detailed analysis as to why such breaches happedn and suggestions.
-        The answer should be in this format: "1. point1 2. point2 ... other points".
-        The answer should not excced 50 words
+        Give detailed analysis as to why such breaches happenned and suggestions.
+        The answer should be in this format: 
+        "1. point1
+            'newline' symbol
+        2.point2
+            'newline' symbol
+        other points". 
+        Give me 5 points only
     """
     # Send user prompt to OpenAI and get a response
     response = openai.ChatCompletion.create(
