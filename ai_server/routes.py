@@ -12,7 +12,7 @@ from bson import ObjectId  # Import ObjectId if you need to use it
 
 main = Blueprint("main", __name__)
 
-openai.api_key = "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"
+openai.api_key = ""
 
 @main.after_request
 def add_cors_headers(response):
