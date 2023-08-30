@@ -1,5 +1,16 @@
+#before running `python -m pip install -r requirements.txt` - run `python -m pip install dlib-19.22.99-cp39-cp39-win_amd64.whl`
 flask
 ultralytics
 flask_socketio
 eventlet
 opencv-python
+pymongo
+face_recognition
+cmake
+dlib
+reportlab
+datetime
+io
+python-telegram-bot
+open-ai
+# myenv\Scripts\activate.bat
